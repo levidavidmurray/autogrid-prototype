@@ -31,3 +31,23 @@ static func vec2i_to_cardinal(direction: Vector2i) -> ECardinalDirection:
 	var clamped_dir := direction.clampi(0, 1)
 	assert(VEC2I_CARDINAL_MAP.has(clamped_dir), "[GridUtils::vec2i_to_cardinal] direction (%s) must be normalized to cardinal direction" % direction)
 	return VEC2I_CARDINAL_MAP[clamped_dir]
+
+
+static func print_cell_path(cell_path: Array[CellData]) -> void:
+	var path_str = ""
+	for i in range(cell_path.size()):
+		var cell: CellData = cell_path[i]
+		if i == cell_path.size() - 1:
+			path_str += str(cell.coord)
+		else:
+			path_str += "%s->" % str(cell.coord)
+	print(path_str)
+
+
+static func draw_cell_path(cell_path: Array[CellData]) -> void:
+	if cell_path.size() < 2:
+		return
+	var point_path: PackedVector3Array = PackedVector3Array()
+	for cell in cell_path:
+		point_path.append(cell.position)
+	DebugDraw3D.draw_line_path(point_path)

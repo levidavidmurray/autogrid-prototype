@@ -1,6 +1,7 @@
 class_name CellData
 extends RefCounted
 
+var id: int = -1 # Flattened array index used for AStar2D
 var coord: Vector2i
 var position: Vector3
 var grid_square: GridSquare

@@ -7,15 +7,28 @@ extends Node
 
 var cube: Node3D
 var runner: GridRunner
+var mouse_world_pos: Vector3
 var hovered_cell: CellData
 var selected_cell: CellData
-var mouse_world_pos: Vector3
+
+var last_hovered_cell: CellData
+var move_preview_cell_path: Array[CellData]
 
 
 func _process(delta: float) -> void:
 	if grid.is_grid_ready():
 		_get_mouse_world_position()
 		_get_cell_at_mouse()
+
+	# if selected_cell:
+	# 	_process_selected_cell(delta)
+
+	if _runner_is_selected():
+		_process_runner_move_select()
+	elif not move_preview_cell_path.is_empty():
+		move_preview_cell_path.clear()
+
+	last_hovered_cell = hovered_cell
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -24,8 +37,52 @@ func _unhandled_input(event: InputEvent) -> void:
 			if runner == null:
 				_spawn_runner()
 			else:
-				_change_selected_cell(hovered_cell)
-					
+				if _runner_is_selected() and not move_preview_cell_path.is_empty():
+					runner.move(move_preview_cell_path)
+					_change_selected_cell(move_preview_cell_path[-1])
+				elif selected_cell:
+					_change_selected_cell(null)
+				else:
+					_change_selected_cell(hovered_cell)
+	elif event is InputEventKey:
+		if event.keycode == KEY_ESCAPE and event.is_released():
+			if runner.can_move():
+				_change_selected_cell(null)
+
+
+func _runner_is_selected() -> bool:
+	if runner == null:
+		return false
+	return selected_cell != null and selected_cell == runner.current_cell and runner.can_move()
+
+
+func _process_runner_move_select() -> void:
+	if not runner.can_move():
+		return
+
+	if hovered_cell != last_hovered_cell:
+		_calculate_runner_move_path()
+	
+	if hovered_cell == null or hovered_cell == runner.current_cell:
+		move_preview_cell_path.clear()
+
+	GridUtils.draw_cell_path(move_preview_cell_path)
+
+
+func _calculate_runner_move_path() -> void:
+	if hovered_cell != null and hovered_cell != runner.current_cell:
+		move_preview_cell_path = grid.get_cell_path(runner.current_cell, hovered_cell)
+
+
+func _process_selected_cell(_delta: float) -> void:
+	if hovered_cell != null and hovered_cell != last_hovered_cell and hovered_cell != selected_cell:
+		move_preview_cell_path = grid.get_cell_path(selected_cell, hovered_cell)
+	
+	if hovered_cell == null or hovered_cell == selected_cell:
+		move_preview_cell_path.clear()
+
+	GridUtils.draw_cell_path(move_preview_cell_path)
+	
 
 
 func _spawn_runner() -> void:
@@ -39,13 +96,10 @@ func _spawn_runner() -> void:
 	grid.add_child(runner)
 	runner.current_cell = hovered_cell
 	runner.global_position = hovered_cell.position
+	runner.move_finished.connect(_calculate_runner_move_path)
 
 
 func _change_selected_cell(new_cell: CellData) -> void:
-	# state 1: no selected_cell, new_cell == null
-	# state 2: no selected_cell, new_cell != selected_cell
-	# state 3: selected_cell, new_cell == null
-	# state 4: selected_cell, new_cell != selected_cell
 	if selected_cell != null:
 		_set_cell_selected_state(selected_cell, false)
 		if new_cell == selected_cell or new_cell == null:
@@ -73,12 +127,12 @@ func _get_cell_at_mouse() -> void:
 func _set_cell_selected_state(cell: CellData, is_selected: bool) -> void:
 	if is_selected:
 		_set_grid_square_color(cell, Color.ORANGE)
-		for adj_cell in cell.get_neighbor_cells():
-			_set_grid_square_color(adj_cell, lerp(grid.line_color, Color.RED, 0.6), 0.0005)
+		# for adj_cell in cell.get_neighbor_cells():
+		# 	_set_grid_square_color(adj_cell, lerp(grid.line_color, Color.RED, 0.6), 0.0005)
 	else:
 		_reset_grid_square_color(cell)
-		for adj_cell in cell.get_neighbor_cells():
-			_reset_grid_square_color(adj_cell)
+		# for adj_cell in cell.get_neighbor_cells():
+		# 	_reset_grid_square_color(adj_cell)
 
 
 func _set_cell_hovered_state(cell: CellData, is_hovered: bool) -> void:

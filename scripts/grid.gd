@@ -33,6 +33,7 @@ var is_grid_dirty = true
 var is_squares_dirty = true
 
 var cells: Array # Array[Array[CellData]]
+var cells_1d: Array[CellData]
 var astar: AStar2D
 
 
@@ -92,6 +93,20 @@ func get_closest_cell_to_world_pos(world_pos: Vector3) -> CellData:
 	return closest_cell
 
 
+func get_cell_by_id(id: int) -> CellData:
+	assert(id < cells_1d.size(), "[Grid::get_cell_by_id] id (%s) cannot be larger than cell count (%s)" % [id, cells_1d.size()])
+	return cells_1d[id]
+
+
+func get_cell_path(from_cell: CellData, to_cell: CellData) -> Array[CellData]:
+	var cell_path: Array[CellData] = []
+	var id_path: PackedInt64Array = astar.get_id_path(from_cell.id, to_cell.id)
+	cell_path.resize(id_path.size())
+	for i in range(id_path.size()):
+		cell_path[i] = get_cell_by_id(id_path[i])
+	return cell_path
+
+
 func _update_grid_squares() -> void:
 	ArrayUtils.for_2d_array(cells, func(cell: CellData):
 		cell.grid_square.cell_size = cell_size
@@ -106,10 +121,13 @@ func _generate_grid() -> void:
 		cell.grid_square.queue_free()
 	)
 	cells.clear()
+	cells_1d.clear()
+	astar = AStar2D.new()
 
 	cells = ArrayUtils.create_2d_array(grid_size)
+	cells_1d.resize(grid_size.x * grid_size.y)
 	# Create cells (CellData)
-	ArrayUtils.for_2d_array(cells, func(x: int, y: int):
+	ArrayUtils.for_2d_array(cells, func(x: int, y: int, i: int):
 		var cell_world_pos = Vector3(x * cell_size, 0.0, y * cell_size)
 
 		var grid_square = grid_square_scene.instantiate() as GridSquare
@@ -118,15 +136,23 @@ func _generate_grid() -> void:
 		grid_square.debug_label.text = "%s" % Vector2i(x, y)
 
 		var cell = CellData.new(Vector2i(x, y))
+		cell.id = i
 		cell.position = cell_world_pos
 		cell.grid_square = grid_square
 		cells[y][x] = cell
+		cells_1d[cell.id] = cell
+
+		astar.add_point(cell.id, cell.coord)
 	)
 
 	# Populate cell neighbors, construct AStar graph
-	ArrayUtils.for_2d_array(cells, func(x: int, y: int, i: int):
+	ArrayUtils.for_2d_array(cells, func(x: int, y: int):
 		var cell: CellData = cells[y][x]
 		cell.neighbor_map = get_cell_adjacency_map(cell)
+		# AStar connections
+		for adj_cell in cell.get_neighbor_cells():
+			if not astar.are_points_connected(cell.id, adj_cell.id):
+				astar.connect_points(cell.id, adj_cell.id)
 	)
 
 

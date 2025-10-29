@@ -27,4 +27,5 @@ transform = Transform3D(-1, -8.742278e-08, 0, -3.821371e-15, 4.371139e-08, 1, -8
 modulate = Color(0.21118024, 0.31133077, 0.47463936, 1)
 outline_modulate = Color(0, 0, 0, 0)
 text = "(0,0)"
+font_size = 24
 horizontal_alignment = 2
