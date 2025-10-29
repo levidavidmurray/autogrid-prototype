@@ -7,12 +7,9 @@ extends Node
 
 var cube: Node3D
 var runner: GridRunner
-var hovered_cell: Vector2i = Vector2i(-1, -1)
+var hovered_cell: CellData
 var mouse_world_pos: Vector3
 
-var has_hovered_cell: bool:
-	get:
-		return hovered_cell != Vector2i(-1, -1)
 
 func _process(delta: float) -> void:
 	if grid.is_grid_ready():
@@ -26,7 +23,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			if runner == null:
 				_spawn_runner()
 			else:
-				if has_hovered_cell:
+				if hovered_cell != null:
 					runner.current_cell = hovered_cell
 
 
@@ -40,26 +37,22 @@ func _spawn_runner() -> void:
 	runner.shape = cube
 	grid.add_child(runner)
 	runner.current_cell = hovered_cell
-	runner.global_position = grid.grid_to_world(hovered_cell)
+	runner.global_position = hovered_cell.position
 
 
 
 func _get_cell_at_mouse() -> void:
-	var cell = grid.world_to_grid(mouse_world_pos)
+	var cell: CellData = grid.get_closest_cell_to_world_pos(mouse_world_pos)
 
-	var grid_square: GridSquare
 	if cell != hovered_cell:
-		if grid.grid_squares.has(hovered_cell):
-			grid_square = grid.grid_squares[hovered_cell]
-			grid_square.line_color = grid.line_color
-			grid_square.position.y = 0.0
-			grid_square.scale = Vector3.ONE
-		if grid.grid_squares.has(cell):
-			grid_square = grid.grid_squares[cell]
-			grid_square.line_color = lerp(grid.line_color, Color.ORANGE, 0.75)
-			grid_square.position.y = 0.001
-			grid_square.scale = Vector3.ONE * 1.02
-
+		if hovered_cell:
+			hovered_cell.grid_square.line_color = grid.line_color
+			hovered_cell.grid_square.position.y = 0.0
+			hovered_cell.grid_square.scale = Vector3.ONE
+		if cell:
+			cell.grid_square.line_color = lerp(grid.line_color, Color.ORANGE, 0.75)
+			cell.grid_square.position.y = 0.001
+			cell.grid_square.scale = Vector3.ONE * 1.02
 
 	hovered_cell = cell
 

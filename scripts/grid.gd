@@ -2,6 +2,7 @@
 class_name Grid
 extends Node3D
 
+
 @export var grid_square_scene: PackedScene
 @export var grid_size: Vector2i = Vector2i(10, 10):
 	set(value):
@@ -31,12 +32,7 @@ extends Node3D
 var is_grid_dirty = true
 var is_squares_dirty = true
 
-var grid_coords: Array[Array]
-var grid_outline_coords: Array[Array]
-var grid_squares: Dictionary[Vector2i, GridSquare]
-
-func _ready() -> void:
-	pass
+var cells: Array # Array[Array[CellData]]
 
 
 func _process(delta: float) -> void:
@@ -47,97 +43,79 @@ func _process(delta: float) -> void:
 		_update_grid_squares()
 		is_squares_dirty = false
 
-	# _process_grid_debug(delta)
-
 
 func is_grid_ready() -> bool:
-	return not grid_squares.is_empty()
+	return not cells.is_empty()
 
 
-func grid_to_world(cell_coord: Vector2i) -> Vector3:
-	assert(cell_coord.x < grid_size.x, "[world_to_grid] cell_coord.x must be smaller than grid_size.x")
-	assert(cell_coord.y < grid_size.y, "[world_to_grid] cell_coord.y must be smaller than grid_size.y")
-	return grid_coords[cell_coord.y][cell_coord.x]
+func is_valid_coord(coord: Vector2i) -> bool:
+	if coord.x >= grid_size.x:
+		return false
+	if coord.y >= grid_size.y:
+		return false
+	if grid_to_cell(coord) == null:
+		return false
+	return true
+
+
+func grid_to_world(coord: Vector2i) -> Vector3:
+	var cell: CellData = grid_to_cell(coord)
+	assert(cell != null, "CellData at coord %s == null" % coord)
+	return cell.position
+
+
+func grid_to_cell(coord: Vector2i) -> CellData:
+	assert(coord.x < grid_size.x, "[grid_to_cell] coord.x must be smaller than grid_size.x")
+	assert(coord.y < grid_size.y, "[grid_to_cell] coord.y must be smaller than grid_size.y")
+	return cells[coord.y][coord.x]
 
 
 func world_to_grid(world_pos: Vector3) -> Vector2i:
-	var closest_grid_pos: Vector2i = Vector2i(-1, -1)
+	var grid_pos: Vector2i = Vector2i(-1, -1)
+	var closest_cell = get_closest_cell_to_world_pos(world_pos)
+	if closest_cell:
+		grid_pos = closest_cell.coord
+	return grid_pos
+
+
+func get_closest_cell_to_world_pos(world_pos: Vector3) -> CellData:
+	var closest_cell: CellData = null
 	var closest_sq_dist: float = ((cell_size + line_width) * 1.41) / 2.0
-	for y in range(grid_coords.size()):
-		var row = grid_coords[y]
-		for x in range(row.size()):
-			var cell_pos: Vector3 = row[x]
-			var sq_dist = cell_pos.distance_squared_to(world_pos)
+	for y in range(cells.size()):
+		for x in range(cells[y].size()):
+			var cell: CellData = cells[y][x]
+			var sq_dist = cell.position.distance_squared_to(world_pos)
 			if sq_dist < closest_sq_dist:
 				closest_sq_dist = sq_dist
-				closest_grid_pos = Vector2i(x, y)
-	return closest_grid_pos
-
-
-func _process_grid_debug(_delta: float) -> void:
-	var config = DebugDraw3D.new_scoped_config()
-	config.set_thickness(0.015)
-	for i in range(grid_coords.size()):
-		var row = grid_coords[i]
-		for j in range(row.size()):
-			DebugDraw3D.draw_sphere(row[j], 0.025, Color.WHITE)
-
-	for i in range(grid_outline_coords.size()):
-		var row = grid_outline_coords[i]
-
-		for j in range(row.size()):
-			if i == 0:
-				var last_row = grid_outline_coords[-1]
-				var col_last = last_row[j]
-				DebugDraw3D.draw_line(row[j], col_last, Color.WHITE)
-
-			# DebugDraw3D.draw_sphere(row[j], 0.025, Color.ORANGE)
-
-		var row_first = row[0]
-		var row_last = row[-1]
-		DebugDraw3D.draw_line(row_first, row_last, Color.WHITE)
+				closest_cell = cell
+	return closest_cell
 
 
 func _update_grid_squares() -> void:
-	for cell in grid_squares:
-		var grid_square: GridSquare = grid_squares[cell]
-		grid_square.cell_size = cell_size
-		grid_square.base_color = base_color
-		grid_square.line_color = line_color
-		grid_square.line_width = line_width
-
-
-func _create_grid_squares() -> void:
-	for child in get_children():
-		if child is GridSquare:
-			child.queue_free()
-	grid_squares.clear()
-	for y in range(grid_size.y):
-		for x in range(grid_size.x):
-			var cell = Vector2i(x, y)
-			var grid_square = grid_square_scene.instantiate() as GridSquare
-			add_child(grid_square)
-			grid_square.global_position = grid_to_world(cell)
-			grid_squares[cell] = grid_square
-	_update_grid_squares()
+	ArrayUtils.for_2d_array(cells, func(cell: CellData):
+		cell.grid_square.cell_size = cell_size
+		cell.grid_square.base_color = base_color
+		cell.grid_square.line_color = line_color
+		cell.grid_square.line_width = line_width
+	)
 
 
 func _generate_grid() -> void:
-	grid_coords.clear()
-	for z in range(grid_size.y):
-		var row: Array[Vector3] = []
-		row.resize(grid_size.x)
-		for x in range(grid_size.x):
-			row[x] = Vector3(x * cell_size, 0.0, z * cell_size)
-		grid_coords.append(row)
+	ArrayUtils.for_2d_array(cells, func(cell: CellData):
+		cell.grid_square.queue_free()
+	)
+	cells.clear()
 
-	grid_outline_coords.clear()
-	for z in range(grid_size.y + 1):
-		var outline_row: Array[Vector3] = []
-		outline_row.resize(grid_size.x + 1)
-		for x in range(outline_row.size()):
-			var half_cell_size = cell_size / 2.0
-			outline_row[x] = Vector3((x * cell_size) - half_cell_size, 0.0, (z * cell_size) - half_cell_size)
-		grid_outline_coords.append(outline_row)
-	
-	_create_grid_squares()
+	cells = ArrayUtils.create_2d_array(grid_size)
+	ArrayUtils.for_2d_array(cells, func(x: int, y: int):
+		var cell_world_pos = Vector3(x * cell_size, 0.0, y * cell_size)
+
+		var grid_square = grid_square_scene.instantiate() as GridSquare
+		add_child(grid_square)
+		grid_square.global_position = cell_world_pos
+
+		var cell = CellData.new(Vector2i(x, y))
+		cell.position = cell_world_pos
+		cell.grid_square = grid_square
+		cells[y][x] = cell
+	)
