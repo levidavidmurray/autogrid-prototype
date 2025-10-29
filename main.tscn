@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://bgkr3dwcyaay3"]
+[gd_scene load_steps=13 format=3 uid="uid://bgkr3dwcyaay3"]
 
 [ext_resource type="Script" uid="uid://chrm3c00y0n16" path="res://scripts/game_controller.gd" id="1_h2yge"]
 [ext_resource type="Script" uid="uid://faieval2xu6s" path="res://scripts/grid.gd" id="1_ig7tw"]
@@ -6,12 +6,18 @@
 [ext_resource type="PackedScene" uid="uid://c23svjdlmxnur" path="res://scenes/enemy/basic_enemy/basic_enemy.tscn" id="3_7mycd"]
 [ext_resource type="Shader" uid="uid://bbvbv0d3lqwt8" path="res://shaders/grid.gdshader" id="4_1bvp3"]
 [ext_resource type="PackedScene" uid="uid://buqxg414phccf" path="res://scenes/grid_square/grid_square.tscn" id="4_lquwl"]
+[ext_resource type="Material" uid="uid://cis0g6ogyfaqm" path="res://shaders/materials/ss_hatch_mat.tres" id="6_272bh"]
 
 [sub_resource type="Environment" id="Environment_ig7tw"]
 background_mode = 1
 background_color = Color(0.04570657, 0.07998828, 0.1440706, 1)
 ambient_light_source = 2
 ambient_light_color = Color(0.9079417, 0.9079417, 0.90794164, 1)
+ambient_light_energy = 1.3
+
+[sub_resource type="QuadMesh" id="QuadMesh_5vw27"]
+flip_faces = true
+size = Vector2(2, 2)
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_ig7tw"]
 size = Vector2(10, 10)
@@ -31,11 +37,19 @@ size = Vector3(100, 1, 100)
 
 [node name="Node3D" type="Node3D"]
 
-[node name="GameController" type="Node" parent="." node_paths=PackedStringArray("object_subviewport", "grid")]
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.61296016, -0.04549314, 0.78880304, -0.78526235, -0.14553973, 0.601815, 0.08742372, -0.9883059, -0.12493411, 1.5499716, 0, 0)
+shadow_normal_bias = 10.0
+shadow_blur = 1.157
+directional_shadow_split_1 = 0.009
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_ig7tw")
+
+[node name="GameController" type="Node" parent="." node_paths=PackedStringArray("grid")]
 script = ExtResource("1_h2yge")
 cube_scene = ExtResource("2_0xm2m")
 basic_enemy_scene = ExtResource("3_7mycd")
-object_subviewport = NodePath("../ObjectSubviewport")
 grid = NodePath("../Grid")
 metadata/_custom_type_script = "uid://chrm3c00y0n16"
 
@@ -47,26 +61,14 @@ line_width = 0.03
 
 [node name="Camera3D" type="Camera3D" parent="."]
 transform = Transform3D(-0.7071068, 0.35437608, -0.61189675, 0, 0.8653527, 0.5011634, 0.7071068, 0.35437608, -0.61189675, -2.3048353, 5.5914288, -2.3048353)
-cull_mask = 1048573
 projection = 1
 size = 8.955
 
-[node name="ObjectSubviewport" type="SubViewport" parent="."]
-transparent_bg = true
-msaa_3d = 2
-size = Vector2i(1920, 1080)
-
-[node name="Camera3D2" type="Camera3D" parent="ObjectSubviewport"]
-transform = Transform3D(-0.7071068, 0.35437608, -0.61189675, 0, 0.8653527, 0.5011634, 0.7071068, 0.35437608, -0.61189675, -2.3048353, 5.5914288, -2.3048353)
-cull_mask = 2
-projection = 1
-size = 8.955
-
-[node name="RemoteTransform3D" type="RemoteTransform3D" parent="ObjectSubviewport/Camera3D2"]
-remote_path = NodePath("../../../Camera3D")
-
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
-environment = SubResource("Environment_ig7tw")
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Camera3D"]
+visible = false
+extra_cull_margin = 16384.0
+mesh = SubResource("QuadMesh_5vw27")
+surface_material_override/0 = ExtResource("6_272bh")
 
 [node name="GridGround" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 0, 4.5)

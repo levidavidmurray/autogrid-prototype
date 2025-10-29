@@ -1,85 +1,112 @@
 shader_type spatial;
-render_mode unshaded, depth_draw_opaque, depth_prepass_alpha;
+render_mode unshaded;
 
-// Inspired by https://godotshaders.com/shader/3d-pixel-art-outline-highlight-post-processing-shader/
+/*
+	Normal/Depth outline shader. Apply to nodes as a next pass shader texture.
+	Inspired by Yui Kinomoto @arlez80, lukky_nl (YT), Robin Seibold (YT)
+	Uses Sobel Edge detection on a normal and depth texture
+	Written by William Li (LoudFlameLava)
 
-uniform sampler2D DEPTH_TEXTURE : hint_depth_texture, filter_linear_mipmap;
+	MIT License
+*/
+
+// Might create an outline at the edge of the viewport
+
 uniform sampler2D SCREEN_TEXTURE : hint_screen_texture, filter_linear_mipmap;
-uniform sampler2D NORMAL_TEXTURE : hint_normal_roughness_texture, filter_nearest;
+uniform sampler2D DEPTH_TEXTURE : hint_depth_texture, filter_linear_mipmap;
+uniform sampler2D NORMAL_TEXTURE : hint_normal_roughness_texture, filter_linear_mipmap;
 
+uniform float normal_threshold = 0.1;
+uniform float depth_threshold = 0.05;
+uniform float depth_artifact_correction_coef = 2;
+uniform vec3 outline_color: source_color;
 
-uniform vec3 shadow_color : source_color = vec3(0.0);
-uniform float shadow_thickness = 2.0;
+const mat3 sobel_y = mat3(
+	vec3(1.0, 0.0, -1.0),
+	vec3(2.0, 0.0, -2.0),
+	vec3(1.0, 0.0, -1.0)
+);
 
-vec2 getDepth(vec2 screen_uv, sampler2D depth_texture, mat4 inv_projection_matrix){
-	float raw_depth = texture(depth_texture, screen_uv)[0];
-	vec3 normalized_device_coordinates = vec3(screen_uv * 2.0 - 1.0, raw_depth);
-    vec4 view_space = inv_projection_matrix * vec4(normalized_device_coordinates, 1.0);	
-	view_space.xyz /= view_space.w;	
-	return vec2(-view_space.z, raw_depth);
+const mat3 sobel_x = mat3(
+	vec3(1.0, 2.0, 1.0),
+	vec3(0.0, 0.0, 0.0),
+	vec3(-1.0, -2.0, -1.0)
+);
+
+float edge_value_normal(sampler2D normal_tex, vec2 uv, vec2 pixel_size, mat3 sobel) {
+	float output = 0.0;
+	vec3 normal = texture(normal_tex, uv).rgb;
+	vec3 n = texture(NORMAL_TEXTURE, uv + vec2(0.0, -pixel_size.y)).rgb;
+	vec3 s = texture(NORMAL_TEXTURE, uv + vec2(0.0, pixel_size.y)).rgb;
+	vec3 e = texture(NORMAL_TEXTURE, uv + vec2(pixel_size.x, 0.0)).rgb;
+	vec3 w = texture(NORMAL_TEXTURE, uv + vec2(-pixel_size.x, 0.0)).rgb;
+	vec3 nw = texture(NORMAL_TEXTURE, uv + vec2(-pixel_size.x, -pixel_size.y)).rgb;
+	vec3 ne = texture(NORMAL_TEXTURE, uv + vec2(pixel_size.x, -pixel_size.y)).rgb;
+	vec3 sw = texture(NORMAL_TEXTURE, uv + vec2(-pixel_size.x, pixel_size.y)).rgb;
+	vec3 se = texture(NORMAL_TEXTURE, uv + vec2(pixel_size.x, pixel_size.y)).rgb;
+
+	mat3 error_mat = mat3(
+		vec3(length(normal - nw), length(normal - n), length(normal - ne)),
+		vec3(length(normal - w), 0.0, length(normal - e)),
+		vec3(length(normal - sw), length(normal - s), length(normal - se))
+	);
+
+	output += dot(sobel[0], error_mat[0]);
+	output += dot(sobel[1], error_mat[1]);
+	output += dot(sobel[2], error_mat[2]);
+	return abs(output);
+}
+
+float get_depth(sampler2D depth_tex, vec2 uv, mat4 inv_projection_matrix) {
+	float depth_raw = texture(depth_tex, uv).x;
+	vec3 ndc = vec3(uv * 2.0 - 1.0, depth_raw);
+	vec4 view = inv_projection_matrix * vec4(ndc, 1.0);
+	view.xyz /= view.w;
+	float depth_linear = -view.z;
+	return depth_linear;
+}
+
+float edge_value_depth(sampler2D depth_tex, vec2 uv, vec2 pixel_size, mat3 sobel, mat4 inv_projection_matrix){
+	float output = 0.0;
+	float depth = get_depth(depth_tex, uv, inv_projection_matrix);
+	float n = get_depth(depth_tex, uv + vec2(0.0, -pixel_size.y), inv_projection_matrix);
+	float s = get_depth(depth_tex, uv + vec2(0.0, pixel_size.y), inv_projection_matrix);
+	float e = get_depth(depth_tex, uv + vec2(pixel_size.x, 0.0), inv_projection_matrix);
+	float w = get_depth(depth_tex, uv + vec2(-pixel_size.x, 0.0), inv_projection_matrix);
+	float ne = get_depth(depth_tex, uv + vec2(pixel_size.x, -pixel_size.y), inv_projection_matrix);
+	float nw = get_depth(depth_tex, uv + vec2(-pixel_size.x, -pixel_size.y), inv_projection_matrix);
+	float se = get_depth(depth_tex, uv + vec2(pixel_size.x, pixel_size.y), inv_projection_matrix);
+	float sw = get_depth(depth_tex, uv + vec2(-pixel_size.x, pixel_size.y), inv_projection_matrix);
+
+	mat3 error_mat = mat3(
+		vec3((depth - nw)/depth, (depth - n)/depth, (depth - ne)/depth),
+		vec3((depth - w)/depth, 0.0, (depth - e)/depth),
+		vec3((depth - sw)/depth, (depth - s)/depth, (depth - se)/depth)
+	);
+
+	output += dot(sobel[0], error_mat[0]);
+	output += dot(sobel[1], error_mat[1]);
+	output += dot(sobel[2], error_mat[2]);
+	return abs(output);
 }
 
 
 void fragment() {
-	vec2 e = vec2(1./VIEWPORT_SIZE.xy)*1.0;
-
-	float depth_diff = 0.0;
-	float neg_depth_diff = .5;
-	
-	vec2 depth_data = getDepth(SCREEN_UV, DEPTH_TEXTURE, INV_PROJECTION_MATRIX);
-	float depth = depth_data.x;
-	vec3 color = texture(SCREEN_TEXTURE, SCREEN_UV).rgb;
-	vec3 c = vec3(0.0);
-	
-	vec2 min_depth_data = depth_data;
-	float min_depth = 9999999.9;
-	
-
-	vec3 normal = texture(NORMAL_TEXTURE, SCREEN_UV).rgb * 2.0 - 1.0;
-	
-	for (float x = -shadow_thickness; x <= shadow_thickness;x += 1.0){
-		for (float y = -shadow_thickness; y <= shadow_thickness; y += 1.0){
-			if ((x == 0.0 && y == 0.0) || (shadow_thickness*shadow_thickness < (x*x + y*y))){
-				continue;
-			}
-			
-			vec2 du_data = getDepth(SCREEN_UV+1.0*vec2(x, y)*e, DEPTH_TEXTURE, INV_PROJECTION_MATRIX);
-			vec2 dd_data = getDepth(SCREEN_UV+0.5*vec2(x, y)*e, DEPTH_TEXTURE, INV_PROJECTION_MATRIX);
-			
-			float du = du_data.x;
-			float dd = dd_data.x;
-			
-			float dd_diff = clamp(abs((depth - dd) - (dd - du)), 0.0, 1.0);
-
-			float val = clamp(abs(depth - du), 0., 1.)/(x*x + y*y)*dd_diff*dd_diff*5000.0;
-			
-			val = clamp(val, 0.0, 1.0);
-
-			depth_diff += val;
-
-			if (du < min_depth){
-				min_depth = du;
-				min_depth_data = du_data;
-				c = texture(SCREEN_TEXTURE, SCREEN_UV+vec2(x, y)*e).rgb;
-				
-				c *= clamp(0.5+ 0.5*dot(normalize(vec2(x, y)), (vec2(0.0, 1.0))), 0.0, 1.0);
-				
-			}
-			
-			vec3 nu = texture(NORMAL_TEXTURE, SCREEN_UV+vec2(x, y)*e).rgb * 2.0 - 1.0;
-			
-			depth_diff += (1.0-abs(dot(nu, normal)))/max(min(dd, depth), 2.0);
-		}
+	float has_outline = 0.0;
+	vec2 pixel_size = vec2(1.0) / VIEWPORT_SIZE;
+	ALBEDO = texture(SCREEN_TEXTURE, SCREEN_UV).xyz;
+	//ALBEDO = vec3(get_depth(DEPTH_TEXTURE, SCREEN_UV, INV_PROJECTION_MATRIX));
+	if (edge_value_normal(NORMAL_TEXTURE, SCREEN_UV, pixel_size, sobel_x) + edge_value_normal(NORMAL_TEXTURE, SCREEN_UV, pixel_size, sobel_y) > normal_threshold){
+		ALBEDO = outline_color;
+		has_outline += 1.0;
 	}
-
-
-	depth_diff = smoothstep(0.2, 0.3, depth_diff);
-
-	vec3 final = c*shadow_color;
-	ALBEDO = final;
-
-	float alpha_mask = depth_diff;
-	DEPTH = min_depth_data.y*alpha_mask + depth_data.y*(1.0-alpha_mask);
-	ALPHA = clamp((alpha_mask) * 5., 0., 1.);
-
+	vec3 normal = texture(NORMAL_TEXTURE, SCREEN_UV).rgb;
+	float angle = 1.0 - dot(normalize(normal-vec3(0.5)),  vec3(0.0,0.0,1.0));
+	if (edge_value_depth(DEPTH_TEXTURE, SCREEN_UV, pixel_size, sobel_x, INV_PROJECTION_MATRIX) + edge_value_depth(DEPTH_TEXTURE, SCREEN_UV, pixel_size, sobel_y, INV_PROJECTION_MATRIX) > depth_threshold + angle * depth_artifact_correction_coef){
+		ALBEDO = outline_color;
+		has_outline += 1.0;
+	}
+	if (has_outline < 0.1){
+		ALPHA = 0.0;
+	}
 }

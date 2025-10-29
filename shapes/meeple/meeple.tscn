@@ -1,0 +1,28 @@
+[gd_scene load_steps=6 format=3 uid="uid://bt8fjwf3aaf2r"]
+
+[ext_resource type="PackedScene" uid="uid://dv7vv6b3jdnuv" path="res://shapes/meeple/meeple.glb" id="1_6yudl"]
+[ext_resource type="Script" uid="uid://w6elh8h3fuqd" path="res://shapes/shape.gd" id="2_k2sbg"]
+[ext_resource type="Shader" uid="uid://dfw854fy1kwjj" path="res://shaders/simple_outline_shader.gdshader" id="3_0de0a"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bvv5d"]
+resource_local_to_scene = true
+render_priority = 0
+shader = ExtResource("3_0de0a")
+shader_parameter/normal_threshold = 0.34
+shader_parameter/depth_threshold = 0.05
+shader_parameter/depth_artifact_correction_coef = 2.0
+shader_parameter/outline_color = Color(1, 1, 1, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_k2sbg"]
+resource_local_to_scene = true
+next_pass = SubResource("ShaderMaterial_bvv5d")
+albedo_color = Color(0.8047426, 0.80474263, 0.8047426, 1)
+
+[node name="Meeple" node_paths=PackedStringArray("mesh_instance") instance=ExtResource("1_6yudl")]
+script = ExtResource("2_k2sbg")
+mesh_instance = NodePath("Meeple")
+albedo_color = Color(0.8047426, 0.80474263, 0.8047426, 1)
+
+[node name="Meeple" parent="." index="0"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+surface_material_override/0 = SubResource("StandardMaterial3D_k2sbg")

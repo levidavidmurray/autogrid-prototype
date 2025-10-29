@@ -1,0 +1,14 @@
+[gd_scene load_steps=4 format=3 uid="uid://kfervs8eu8kt"]
+
+[ext_resource type="PackedScene" uid="uid://mrj3a52f8kh6" path="res://shapes/cube/cube.glb" id="1_c1r0r"]
+[ext_resource type="Script" uid="uid://w6elh8h3fuqd" path="res://shapes/shape.gd" id="2_lp2ie"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_c1r0r"]
+resource_local_to_scene = true
+
+[node name="Cube" node_paths=PackedStringArray("mesh_instance") instance=ExtResource("1_c1r0r")]
+script = ExtResource("2_lp2ie")
+mesh_instance = NodePath("Cube")
+
+[node name="Cube" parent="." index="0"]
+surface_material_override/0 = SubResource("StandardMaterial3D_c1r0r")

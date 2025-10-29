@@ -48,6 +48,7 @@ func _process(delta: float) -> void:
 	# ArrayUtils.for_2d_array(cells, func(cell: CellData):
 	# 	var is_disabled = astar.is_point_disabled(cell.id)
 	# 	DebugDraw3D.draw_sphere(cell.position, 0.25, Color.GRAY if is_disabled else Color.GREEN)
+	# 	cell.grid_square.show()
 	# )
 	
 
