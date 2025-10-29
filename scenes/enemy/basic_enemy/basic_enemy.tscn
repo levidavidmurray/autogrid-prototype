@@ -1,0 +1,21 @@
+[gd_scene load_steps=4 format=3 uid="uid://c23svjdlmxnur"]
+
+[ext_resource type="PackedScene" uid="uid://4rf2ix6jnj20" path="res://shapes/cube/cube.tscn" id="1_0n0l1"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_hwpyy"]
+size = Vector3(0.35, 0.35, 0.35)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0n0l1"]
+albedo_color = Color(0.99999994, 0.20249376, 0.23448059, 1)
+stencil_outline_thickness = 0.067
+
+[node name="BasicEnemy" type="Node3D"]
+
+[node name="Cube" parent="." instance=ExtResource("1_0n0l1")]
+
+[node name="MeshInstance3D" parent="Cube" index="0"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.175, 0)
+mesh = SubResource("BoxMesh_hwpyy")
+surface_material_override/0 = SubResource("StandardMaterial3D_0n0l1")
+
+[editable path="Cube"]

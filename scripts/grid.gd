@@ -2,6 +2,7 @@
 class_name Grid
 extends Node3D
 
+signal setup_finished
 
 @export var grid_square_scene: PackedScene
 @export var grid_size: Vector2i = Vector2i(10, 10):
@@ -44,10 +45,45 @@ func _process(delta: float) -> void:
 	if is_squares_dirty:
 		_update_grid_squares()
 		is_squares_dirty = false
+	# ArrayUtils.for_2d_array(cells, func(cell: CellData):
+	# 	var is_disabled = astar.is_point_disabled(cell.id)
+	# 	DebugDraw3D.draw_sphere(cell.position, 0.25, Color.GRAY if is_disabled else Color.GREEN)
+	# )
+	
 
 
 func is_grid_ready() -> bool:
 	return not cells.is_empty()
+
+
+func update_astar_availability() -> void:
+	ArrayUtils.for_2d_array(cells, func(cell: CellData):
+		var is_occupied = cell.occupant != null
+		astar.set_point_disabled(cell.id, is_occupied)
+	)
+
+
+func update_astar_availability_for_player() -> void:
+	ArrayUtils.for_2d_array(cells, func(cell: CellData):
+		astar.set_point_disabled(cell.id, not _is_cell_available_for_player_units(cell))
+	)
+
+
+func _is_cell_available_for_player_units(cell: CellData) -> bool:
+	if cell.occupant == null:
+		return true
+	var tile_unit = cell.occupant as TileUnit
+	if tile_unit != null and tile_unit.is_player():
+		return true
+	return false
+	
+
+
+func is_cell_available(coord: Vector2i) -> bool:
+	if not is_valid_coord(coord):
+		return false
+	var cell = grid_to_cell(coord)
+	return cell.occupant == null
 
 
 func is_valid_coord(coord: Vector2i) -> bool:
@@ -154,6 +190,8 @@ func _generate_grid() -> void:
 			if not astar.are_points_connected(cell.id, adj_cell.id):
 				astar.connect_points(cell.id, adj_cell.id)
 	)
+
+	setup_finished.emit()
 
 
 func get_cell_adjacency_map(cell: CellData) -> Dictionary[GridUtils.ECardinalDirection, CellData]:

@@ -8,9 +8,17 @@ enum EState {
 
 signal move_started
 signal move_finished
+signal cell_changed(prev_cell: CellData, new_cell: CellData)
 
 var grid: Grid
-var current_cell: CellData
+
+var current_cell: CellData:
+	set(value):
+		var prev_cell = current_cell
+		current_cell = value
+		if current_cell != prev_cell:
+			cell_changed.emit(prev_cell, current_cell)
+
 var is_cell_dirty: bool = true
 var debug_label: Label3D
 
@@ -55,6 +63,11 @@ func move(p_path: Array[CellData]) -> void:
 	last_move_time = G.get_time()
 	jump_time_remaining = jump_time
 	move_started.emit()
+
+
+func snap_to_current_cell() -> void:
+	# TODO: Look into refactoring current_cell usage
+	global_position = current_cell.position
 
 
 func _calculate_jump(delta: float):

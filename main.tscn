@@ -1,8 +1,9 @@
-[gd_scene load_steps=10 format=3 uid="uid://bgkr3dwcyaay3"]
+[gd_scene load_steps=11 format=3 uid="uid://bgkr3dwcyaay3"]
 
 [ext_resource type="Script" uid="uid://chrm3c00y0n16" path="res://scripts/game_controller.gd" id="1_h2yge"]
 [ext_resource type="Script" uid="uid://faieval2xu6s" path="res://scripts/grid.gd" id="1_ig7tw"]
 [ext_resource type="PackedScene" uid="uid://4rf2ix6jnj20" path="res://shapes/cube/cube.tscn" id="2_0xm2m"]
+[ext_resource type="PackedScene" uid="uid://c23svjdlmxnur" path="res://scenes/enemy/basic_enemy/basic_enemy.tscn" id="3_7mycd"]
 [ext_resource type="Shader" uid="uid://bbvbv0d3lqwt8" path="res://shaders/grid.gdshader" id="4_1bvp3"]
 [ext_resource type="PackedScene" uid="uid://buqxg414phccf" path="res://scenes/grid_square/grid_square.tscn" id="4_lquwl"]
 
@@ -33,6 +34,7 @@ size = Vector3(100, 1, 100)
 [node name="GameController" type="Node" parent="." node_paths=PackedStringArray("object_subviewport", "grid")]
 script = ExtResource("1_h2yge")
 cube_scene = ExtResource("2_0xm2m")
+basic_enemy_scene = ExtResource("3_7mycd")
 object_subviewport = NodePath("../ObjectSubviewport")
 grid = NodePath("../Grid")
 metadata/_custom_type_script = "uid://chrm3c00y0n16"

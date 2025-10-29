@@ -5,7 +5,14 @@ var id: int = -1 # Flattened array index used for AStar2D
 var coord: Vector2i
 var position: Vector3
 var grid_square: GridSquare
-var occupant: Node3D
+
+var occupant: TileOccupant:
+	set(value):
+		occupant = value
+		# TODO: This probably shouldn't be happening here
+		if occupant:
+			occupant.cell = self
+
 var neighbor_map: Dictionary[GridUtils.ECardinalDirection, CellData]
 
 
