@@ -1,0 +1,23 @@
+[gd_scene load_steps=5 format=3 uid="uid://buqxg414phccf"]
+
+[ext_resource type="Script" uid="uid://d3tepoesj78ug" path="res://scenes/grid_square/grid_square.gd" id="1_anhxp"]
+[ext_resource type="Shader" uid="uid://du0j3lbu8dt7l" path="res://shaders/grid_square.gdshader" id="1_y1pps"]
+
+[sub_resource type="QuadMesh" id="QuadMesh_r72ee"]
+size = Vector2(1.05, 1.05)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_anhxp"]
+resource_local_to_scene = true
+render_priority = 0
+shader = ExtResource("1_y1pps")
+shader_parameter/base_color = Color(0.09411765, 0.14117648, 0.23921569, 1)
+shader_parameter/line_color = Color(1, 1, 1, 1)
+shader_parameter/line_width = 0.05
+
+[node name="GridSquare" type="Node3D"]
+script = ExtResource("1_anhxp")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0, 0)
+mesh = SubResource("QuadMesh_r72ee")
+surface_material_override/0 = SubResource("ShaderMaterial_anhxp")

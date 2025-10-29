@@ -1,0 +1,80 @@
+[gd_scene load_steps=10 format=3 uid="uid://bgkr3dwcyaay3"]
+
+[ext_resource type="Script" uid="uid://chrm3c00y0n16" path="res://scripts/game_controller.gd" id="1_h2yge"]
+[ext_resource type="Script" uid="uid://faieval2xu6s" path="res://scripts/grid.gd" id="1_ig7tw"]
+[ext_resource type="PackedScene" uid="uid://4rf2ix6jnj20" path="res://shapes/cube/cube.tscn" id="2_0xm2m"]
+[ext_resource type="Shader" uid="uid://bbvbv0d3lqwt8" path="res://shaders/grid.gdshader" id="4_1bvp3"]
+[ext_resource type="PackedScene" uid="uid://buqxg414phccf" path="res://scenes/grid_square/grid_square.tscn" id="4_lquwl"]
+
+[sub_resource type="Environment" id="Environment_ig7tw"]
+background_mode = 1
+background_color = Color(0.04570657, 0.07998828, 0.1440706, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.9079417, 0.9079417, 0.90794164, 1)
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_ig7tw"]
+size = Vector2(10, 10)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_lquwl"]
+render_priority = 0
+shader = ExtResource("4_1bvp3")
+shader_parameter/scale_0 = 10
+shader_parameter/scale_1 = 10
+shader_parameter/line_scale_0 = 0.034000001615
+shader_parameter/line_scale_1 = 1.0
+shader_parameter/color_0 = Color(1, 1, 1, 1)
+shader_parameter/color_1 = Color(0.09550149, 0.14152083, 0.2392604, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_h2yge"]
+size = Vector3(100, 1, 100)
+
+[node name="Node3D" type="Node3D"]
+
+[node name="GameController" type="Node" parent="." node_paths=PackedStringArray("object_subviewport", "grid")]
+script = ExtResource("1_h2yge")
+cube_scene = ExtResource("2_0xm2m")
+object_subviewport = NodePath("../ObjectSubviewport")
+grid = NodePath("../Grid")
+metadata/_custom_type_script = "uid://chrm3c00y0n16"
+
+[node name="Grid" type="Node3D" parent="."]
+script = ExtResource("1_ig7tw")
+grid_square_scene = ExtResource("4_lquwl")
+line_color = Color(0.15451863, 0.21983898, 0.3557675, 1)
+line_width = 0.03
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(-0.7071068, 0.35437608, -0.61189675, 0, 0.8653527, 0.5011634, 0.7071068, 0.35437608, -0.61189675, -2.3048353, 5.5914288, -2.3048353)
+cull_mask = 1048573
+projection = 1
+size = 8.955
+
+[node name="ObjectSubviewport" type="SubViewport" parent="."]
+transparent_bg = true
+msaa_3d = 2
+size = Vector2i(1920, 1080)
+
+[node name="Camera3D2" type="Camera3D" parent="ObjectSubviewport"]
+transform = Transform3D(-0.7071068, 0.35437608, -0.61189675, 0, 0.8653527, 0.5011634, 0.7071068, 0.35437608, -0.61189675, -2.3048353, 5.5914288, -2.3048353)
+cull_mask = 2
+projection = 1
+size = 8.955
+
+[node name="RemoteTransform3D" type="RemoteTransform3D" parent="ObjectSubviewport/Camera3D2"]
+remote_path = NodePath("../../../Camera3D")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_ig7tw")
+
+[node name="GridGround" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5, 0, 4.5)
+visible = false
+mesh = SubResource("PlaneMesh_ig7tw")
+surface_material_override/0 = SubResource("ShaderMaterial_lquwl")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="."]
+visible = false
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.4969511, 0)
+shape = SubResource("BoxShape3D_h2yge")
