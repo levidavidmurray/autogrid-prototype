@@ -33,6 +33,7 @@ var is_grid_dirty = true
 var is_squares_dirty = true
 
 var cells: Array # Array[Array[CellData]]
+var astar: AStar2D
 
 
 func _process(delta: float) -> void:
@@ -49,9 +50,9 @@ func is_grid_ready() -> bool:
 
 
 func is_valid_coord(coord: Vector2i) -> bool:
-	if coord.x >= grid_size.x:
+	if coord.x >= grid_size.x or coord.x < 0:
 		return false
-	if coord.y >= grid_size.y:
+	if coord.y >= grid_size.y or coord.y < 0:
 		return false
 	if grid_to_cell(coord) == null:
 		return false
@@ -107,15 +108,34 @@ func _generate_grid() -> void:
 	cells.clear()
 
 	cells = ArrayUtils.create_2d_array(grid_size)
+	# Create cells (CellData)
 	ArrayUtils.for_2d_array(cells, func(x: int, y: int):
 		var cell_world_pos = Vector3(x * cell_size, 0.0, y * cell_size)
 
 		var grid_square = grid_square_scene.instantiate() as GridSquare
 		add_child(grid_square)
 		grid_square.global_position = cell_world_pos
+		grid_square.debug_label.text = "%s" % Vector2i(x, y)
 
 		var cell = CellData.new(Vector2i(x, y))
 		cell.position = cell_world_pos
 		cell.grid_square = grid_square
 		cells[y][x] = cell
 	)
+
+	# Populate cell neighbors, construct AStar graph
+	ArrayUtils.for_2d_array(cells, func(x: int, y: int, i: int):
+		var cell: CellData = cells[y][x]
+		cell.neighbor_map = get_cell_adjacency_map(cell)
+	)
+
+
+func get_cell_adjacency_map(cell: CellData) -> Dictionary[GridUtils.ECardinalDirection, CellData]:
+	var map: Dictionary[GridUtils.ECardinalDirection, CellData] = {}
+	var coord: Vector2i = cell.coord
+	for card_dir in GridUtils.CARDINAL_DIRECTIONS:
+		var adj_coord: Vector2i = coord + GridUtils.cardinal_to_vec2i(card_dir)
+		map[card_dir] = null
+		if is_valid_coord(adj_coord):
+			map[card_dir] = grid_to_cell(adj_coord)
+	return map

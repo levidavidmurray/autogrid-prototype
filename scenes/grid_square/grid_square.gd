@@ -31,6 +31,7 @@ extends Node3D
             material.set_shader_parameter("line_width", line_width)
 
 @onready var mesh_instance: MeshInstance3D = $MeshInstance3D
+@onready var debug_label: Label3D = $DebugLabel
 
 var mesh: QuadMesh
 var material: ShaderMaterial

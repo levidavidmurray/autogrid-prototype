@@ -4,7 +4,7 @@
 [ext_resource type="Shader" uid="uid://du0j3lbu8dt7l" path="res://shaders/grid_square.gdshader" id="1_y1pps"]
 
 [sub_resource type="QuadMesh" id="QuadMesh_r72ee"]
-size = Vector2(1.05, 1.05)
+size = Vector2(1.03, 1.03)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_anhxp"]
 resource_local_to_scene = true
@@ -12,7 +12,7 @@ render_priority = 0
 shader = ExtResource("1_y1pps")
 shader_parameter/base_color = Color(0.09411765, 0.14117648, 0.23921569, 1)
 shader_parameter/line_color = Color(1, 1, 1, 1)
-shader_parameter/line_width = 0.05
+shader_parameter/line_width = 0.02
 
 [node name="GridSquare" type="Node3D"]
 script = ExtResource("1_anhxp")
@@ -21,3 +21,10 @@ script = ExtResource("1_anhxp")
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0, 0)
 mesh = SubResource("QuadMesh_r72ee")
 surface_material_override/0 = SubResource("ShaderMaterial_anhxp")
+
+[node name="DebugLabel" type="Label3D" parent="."]
+transform = Transform3D(-1, -8.742278e-08, 0, -3.821371e-15, 4.371139e-08, 1, -8.742278e-08, 1, -4.371139e-08, -0.44049454, 0.010615006, 0.3387617)
+modulate = Color(0.21118024, 0.31133077, 0.47463936, 1)
+outline_modulate = Color(0, 0, 0, 0)
+text = "(0,0)"
+horizontal_alignment = 2
