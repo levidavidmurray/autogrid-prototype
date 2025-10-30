@@ -51,3 +51,12 @@ static func draw_cell_path(cell_path: Array[CellData]) -> void:
 	for cell in cell_path:
 		point_path.append(cell.position)
 	DebugDraw3D.draw_line_path(point_path)
+
+
+static func draw_cells(cells: Array[CellData], color: Color = Color.GREEN) -> void:
+	for cell in cells:
+		var grid_square: GridSquare = cell.grid_square
+		var box_size = Vector3.ONE * grid_square.cell_size
+		box_size /= 1.5
+		box_size.y /= 5.0
+		DebugDraw3D.draw_box(cell.position, Quaternion(), box_size, color, true)

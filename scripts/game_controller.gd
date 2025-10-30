@@ -1,42 +1,46 @@
 class_name GameController
 extends Node
 
+enum PlayerUnitState {
+	NOT_SELECTED,
+	MOVE_PREVIEW,
+	ABILITY_PREVIEW
+}
+
 @export var cube_scene: PackedScene
 @export var basic_enemy_scene: PackedScene
-@export var object_subviewport: SubViewport
 @export var grid: Grid
 
-var cube: Node3D
+var player_unit_state: PlayerUnitState
+var ability_helper: AbilityHelper
+var player_units: Array[TileUnit]
+var enemy_units: Array[TileUnit]
+
 var mouse_world_pos: Vector3
 var hovered_cell: CellData
 var selected_cell: CellData
 
 var last_hovered_cell: CellData
 var move_preview_cell_path: Array[CellData]
-
-var player_units: Array[TileUnit]
-var enemy_units: Array[TileUnit]
+var preview_ability: Ability
 
 
 func _ready() -> void:
 	grid.setup_finished.connect(_on_grid_setup_finished)
+	ability_helper = AbilityHelper.new(grid)
 
 
 func _process(delta: float) -> void:
-	if grid.is_grid_ready():
-		_get_mouse_world_position()
-		_get_cell_at_mouse()
+	if not grid.is_grid_ready():
+		return
 
-	# if selected_cell:
-	# 	_process_selected_cell(delta)
+	_get_mouse_world_position()
+	_get_cell_at_mouse()
+
+	_process_player_unit_state()
 
 	var selected_unit = _get_selected_unit()
 	DebugDraw2D.set_text("Selected Unit", selected_unit)
-
-	if _is_player_unit_selected():
-		_process_runner_move_select()
-	elif not move_preview_cell_path.is_empty():
-		move_preview_cell_path.clear()
 
 	last_hovered_cell = hovered_cell
 
@@ -44,10 +48,8 @@ func _process(delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.is_released():
-			if _is_player_unit_selected() and not move_preview_cell_path.is_empty():
-				var unit = _get_selected_unit()
-				unit.unit.move(move_preview_cell_path)
-				_change_selected_cell(move_preview_cell_path[-1])
+			if _is_player_unit_selected():
+				_handle_player_unit_hovered_cell_click()
 			elif hovered_cell and hovered_cell != selected_cell:
 				_change_selected_cell(hovered_cell)
 			else:
@@ -61,6 +63,77 @@ func _unhandled_input(event: InputEvent) -> void:
 			var unit = _get_selected_unit()
 			if unit != null and unit.unit.can_move():
 				_change_selected_cell(null)
+		if event.keycode == KEY_1 and event.is_released():
+			var player_unit = player_units[0]
+			preview_ability = player_unit.abilities[0]
+
+
+func _handle_player_unit_hovered_cell_click() -> void:
+	var player_unit = _get_selected_unit()
+
+	if player_unit_state == PlayerUnitState.MOVE_PREVIEW:
+		if not move_preview_cell_path.is_empty():
+			player_unit.unit.move(move_preview_cell_path)
+			_change_selected_cell(move_preview_cell_path[-1])
+		return
+
+	if player_unit_state == PlayerUnitState.ABILITY_PREVIEW:
+		# Check if clicked cell is in possible cells for previewed ability
+		var target_cell: CellData = hovered_cell
+		var can_execute = ability_helper.can_target_cell(preview_ability, player_unit.cell, target_cell)
+		if can_execute:
+			preview_ability.execute(player_unit, target_cell)
+		preview_ability = null
+		_change_selected_cell(null)
+
+
+func _check_player_unit_state_change() -> void:
+	if not _is_player_unit_selected():
+		player_unit_state = PlayerUnitState.NOT_SELECTED
+		preview_ability = null
+		return
+	if preview_ability == null:
+		player_unit_state = PlayerUnitState.MOVE_PREVIEW
+	else:
+		player_unit_state = PlayerUnitState.ABILITY_PREVIEW
+
+
+func _process_player_unit_state() -> void:
+	_check_player_unit_state_change()
+
+	match player_unit_state:
+		PlayerUnitState.NOT_SELECTED:
+			_process_player_unit_state_not_selected()
+		PlayerUnitState.MOVE_PREVIEW:
+			_process_player_unit_state_move_preview()
+		PlayerUnitState.ABILITY_PREVIEW:
+			_process_player_unit_state_ability_preview()
+
+
+func _process_player_unit_state_not_selected() -> void:
+	if not move_preview_cell_path.is_empty():
+		move_preview_cell_path.clear()
+
+
+func _process_player_unit_state_move_preview() -> void:
+	var selected_unit = _get_selected_unit()
+	if not selected_unit.unit.can_move():
+		return
+
+	if hovered_cell != last_hovered_cell:
+		_calculate_unit_move_path(selected_unit)
+	
+	if hovered_cell == null or hovered_cell == selected_unit.cell:
+		move_preview_cell_path.clear()
+
+	GridUtils.draw_cell_path(move_preview_cell_path)
+
+
+func _process_player_unit_state_ability_preview() -> void:
+	DebugDraw2D.set_text("Ability Preview", preview_ability)
+	var selected_unit = _get_selected_unit()
+	var target_cells = ability_helper.get_possible_target_cells(preview_ability, selected_unit.cell)
+	GridUtils.draw_cells(target_cells, Color.RED)
 
 
 func _is_player_unit_selected() -> bool:
@@ -68,7 +141,6 @@ func _is_player_unit_selected() -> bool:
 	if selected_unit == null:
 		return false
 	return selected_unit.is_player()
-	# return selected_cell != null and selected_cell == runner.current_cell and runner.can_move()
 
 
 func _get_selected_unit() -> TileUnit:
@@ -97,34 +169,6 @@ func _calculate_unit_move_path(unit: TileUnit) -> void:
 	if hovered_cell != null and hovered_cell != unit.cell:
 		move_preview_cell_path = grid.get_cell_path(unit.cell, hovered_cell)
 
-
-func _process_runner_move_select() -> void:
-	var selected_unit = _get_selected_unit()
-	if selected_unit == null:
-		return
-	if not selected_unit.is_player():
-		return
-	if not selected_unit.unit.can_move():
-		return
-
-	if hovered_cell != last_hovered_cell:
-		_calculate_unit_move_path(selected_unit)
-	
-	if hovered_cell == null or hovered_cell == selected_unit.cell:
-		move_preview_cell_path.clear()
-
-	GridUtils.draw_cell_path(move_preview_cell_path)
-
-
-func _process_selected_cell(_delta: float) -> void:
-	if hovered_cell != null and hovered_cell != last_hovered_cell and hovered_cell != selected_cell:
-		move_preview_cell_path = grid.get_cell_path(selected_cell, hovered_cell)
-	
-	if hovered_cell == null or hovered_cell == selected_cell:
-		move_preview_cell_path.clear()
-
-	GridUtils.draw_cell_path(move_preview_cell_path)
-	
 
 func _change_selected_cell(new_cell: CellData) -> void:
 	if selected_cell != null:
@@ -206,7 +250,7 @@ func _create_runner() -> GridRunner:
 
 func _create_player_unit() -> TileUnit:
 	var new_runner = _create_runner()
-	cube = cube_scene.instantiate() as Node3D
+	var cube = cube_scene.instantiate() as Node3D
 	new_runner.add_child(cube)
 	new_runner.shape = cube
 	return TileUnit.new(TileUnit.EType.PLAYER, new_runner)
@@ -223,11 +267,15 @@ func _create_enemy_unit() -> TileUnit:
 func _create_player_units() -> void:
 	var player_unit: TileUnit = _create_player_unit()
 	_add_unit_to_grid(player_unit, Vector2i(4, 0))
+	var strike_ability = AbilityManager.get_ability_by_name("Strike")
+	player_unit.abilities.append(strike_ability)
+	player_units.append(player_unit)
 
 
 func _create_enemy_units() -> void:
 	var enemy_unit: TileUnit = _create_enemy_unit()
 	_add_unit_to_grid(enemy_unit, Vector2i(4, 4))
+	enemy_units.append(enemy_unit)
 
 
 func _add_unit_to_grid(unit: TileUnit, coord: Vector2i) -> void:
