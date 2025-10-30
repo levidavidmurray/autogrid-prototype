@@ -27,12 +27,8 @@ func _init(data: Dictionary) -> void:
 		attribute_map[attribute] = attributes_data[attribute]
 
 
-func execute(owner: TileOccupant, target: CellData) -> void:
-	print("%s executes %s on %s" % [owner, self, target])
-	var label = FloatingLabel.new(name)
-	target.grid_square.add_child(label)
-	label.top_level = true
-	label.global_position.y += 0.25
+func execute(owner: TileOccupant, target_cell: CellData) -> void:
+	pass
 
 
 func _to_string() -> String:

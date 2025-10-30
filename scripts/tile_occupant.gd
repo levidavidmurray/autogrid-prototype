@@ -3,3 +3,4 @@ extends RefCounted
 
 var cell: CellData
 var abilities: Array[Ability]
+var health: Health = Health.new()

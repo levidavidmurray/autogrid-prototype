@@ -1,6 +1,10 @@
 @tool
 extends Node3D
 
+func _enter_tree() -> void:
+	Log.current_log_level = Log.LogLevel.DEBUG
+
+
 func get_time() -> float:
 	return Time.get_ticks_msec() / 1000.0
 

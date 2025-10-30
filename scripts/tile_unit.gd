@@ -25,4 +25,4 @@ func is_npc() -> bool:
 
 
 func _to_string() -> String:
-    return "%s %s" % [EType.keys()[type], cell.coord]
+    return "TileUnit(%s, %s)" % [EType.keys()[type], cell.coord]

@@ -37,4 +37,4 @@ func print_neighbors() -> void:
 
 
 func _to_string() -> String:
-	return "CellData { coords(%s, %s) }" % [coord.x, coord.y]
+	return "CellData%s" % coord

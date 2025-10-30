@@ -13,7 +13,7 @@ const abilities_data: Array[Dictionary] = [
 ]
 
 var abilities: Array[Ability]
-var grid: Grid
+var logger: LogStream = LogStream.new("AbilityManager", Log.LogLevel.DEBUG)
 
 
 func _ready() -> void:
@@ -30,4 +30,5 @@ func get_ability_by_name(ability_name: String) -> Ability:
 func _populate_abilities() -> void:
     for data in abilities_data:
         var ability = Ability.new(data)
+        logger.debug("Creating %s" % ability)
         abilities.append(ability)

@@ -82,7 +82,7 @@ func _handle_player_unit_hovered_cell_click() -> void:
 		var target_cell: CellData = hovered_cell
 		var can_execute = ability_helper.can_target_cell(preview_ability, player_unit.cell, target_cell)
 		if can_execute:
-			preview_ability.execute(player_unit, target_cell)
+			ability_helper.execute(preview_ability, player_unit, target_cell)
 		preview_ability = null
 		_change_selected_cell(null)
 
@@ -282,8 +282,13 @@ func _add_unit_to_grid(unit: TileUnit, coord: Vector2i) -> void:
 	assert(grid.is_cell_available(coord))
 	var spawn_cell: CellData = grid.grid_to_cell(coord)
 	var grid_runner: GridRunner = unit.unit
+
 	grid_runner.move_finished.connect(_on_grid_runner_move_finished.bind(unit))
 	grid_runner.cell_changed.connect(_on_grid_runner_cell_changed.bind(unit))
+	unit.health.current_health_changed.connect(_on_tile_occupant_health_changed.bind(unit))
+	unit.health.died.connect(_on_tile_occupant_died.bind(unit))
+
+	# TODO: Figure out what's happening with GridRunner current_cell and CellData occupant setters
 	grid_runner.current_cell = spawn_cell
 	spawn_cell.occupant = unit
 	grid.add_child(grid_runner)
@@ -304,3 +309,11 @@ func _on_grid_runner_cell_changed(prev_cell: CellData, new_cell: CellData, unit:
 func _on_grid_runner_move_finished(unit: TileUnit) -> void:
 	_calculate_unit_move_path(unit)
 	grid.update_astar_availability_for_player()
+
+
+func _on_tile_occupant_health_changed(prev_health: int, new_health: int, occupant: TileOccupant) -> void:
+	Log.debug("%s health changed %s->%s" % [occupant, prev_health, new_health])
+
+
+func _on_tile_occupant_died(occupant: TileOccupant) -> void:
+	Log.info("%s died" % occupant)

@@ -25,7 +25,6 @@ var outline_material: ShaderMaterial
 func _ready() -> void:
 	material = mesh_instance.get_surface_override_material(0)
 	outline_material = material.next_pass
-	print(outline_material)
 	_update_shape_data()
 
 func _update_shape_data() -> void:
