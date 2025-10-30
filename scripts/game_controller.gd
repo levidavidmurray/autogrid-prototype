@@ -37,10 +37,8 @@ func _process(delta: float) -> void:
 	_get_mouse_world_position()
 	_get_cell_at_mouse()
 
+	_process_selected_cell_state()
 	_process_player_unit_state()
-
-	var selected_unit = _get_selected_unit()
-	DebugDraw2D.set_text("Selected Unit", selected_unit)
 
 	last_hovered_cell = hovered_cell
 
@@ -70,21 +68,38 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _handle_player_unit_hovered_cell_click() -> void:
 	var player_unit = _get_selected_unit()
+	var target_cell: CellData = hovered_cell
 
 	if player_unit_state == PlayerUnitState.MOVE_PREVIEW:
 		if not move_preview_cell_path.is_empty():
 			player_unit.unit.move(move_preview_cell_path)
 			_change_selected_cell(move_preview_cell_path[-1])
+		else:
+			if target_cell == selected_cell:
+				_change_selected_cell(null)
+			else:
+				_change_selected_cell(target_cell)
 		return
 
 	if player_unit_state == PlayerUnitState.ABILITY_PREVIEW:
 		# Check if clicked cell is in possible cells for previewed ability
-		var target_cell: CellData = hovered_cell
 		var can_execute = ability_helper.can_target_cell(preview_ability, player_unit.cell, target_cell)
 		if can_execute:
 			ability_helper.execute(preview_ability, player_unit, target_cell)
 		preview_ability = null
 		_change_selected_cell(null)
+
+
+func _process_selected_cell_state() -> void:
+	if selected_cell == null:
+		return
+	DebugDraw2D.set_text("Cell", selected_cell, 0)
+	var occupant = selected_cell.occupant
+	if occupant == null:
+		return
+	DebugDraw2D.set_text("Occupant", occupant, 1)
+	DebugDraw2D.set_text("Health", occupant.health.get_health_string(), 2)
+	
 
 
 func _check_player_unit_state_change() -> void:
@@ -274,6 +289,7 @@ func _create_player_units() -> void:
 
 func _create_enemy_units() -> void:
 	var enemy_unit: TileUnit = _create_enemy_unit()
+	enemy_unit.health.max_health = 4
 	_add_unit_to_grid(enemy_unit, Vector2i(4, 4))
 	enemy_units.append(enemy_unit)
 
