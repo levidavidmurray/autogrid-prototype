@@ -42,9 +42,9 @@ extends Control
 @onready var frame_right: ColorRect = %FrameRight
 
 var max_health_size_map: Dictionary[int, float] = {
-    1: 48,
+    1: 32,
     2: 48,
-    3: 61,
+    3: 48,
     4: 64,
     5: 77,
     6: 77,

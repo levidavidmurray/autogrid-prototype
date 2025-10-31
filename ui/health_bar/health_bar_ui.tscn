@@ -17,29 +17,29 @@ offset_top = 2.0
 offset_right = 75.0
 offset_bottom = 15.0
 
-[node name="@ColorRect@43753" type="ColorRect" parent="PipContainer"]
+[node name="@ColorRect@47176" type="ColorRect" parent="PipContainer"]
 custom_minimum_size = Vector2(13, 13)
 layout_mode = 0
 
-[node name="@ColorRect@43754" type="ColorRect" parent="PipContainer"]
+[node name="@ColorRect@47177" type="ColorRect" parent="PipContainer"]
 custom_minimum_size = Vector2(13, 13)
 layout_mode = 0
 offset_left = 15.0
 offset_right = 15.0
 
-[node name="@ColorRect@43755" type="ColorRect" parent="PipContainer"]
+[node name="@ColorRect@47178" type="ColorRect" parent="PipContainer"]
 custom_minimum_size = Vector2(13, 13)
 layout_mode = 0
 offset_left = 30.0
 offset_right = 30.0
 
-[node name="@ColorRect@43756" type="ColorRect" parent="PipContainer"]
+[node name="@ColorRect@47179" type="ColorRect" parent="PipContainer"]
 custom_minimum_size = Vector2(13, 13)
 layout_mode = 0
 offset_left = 45.0
 offset_right = 45.0
 
-[node name="@ColorRect@43757" type="ColorRect" parent="PipContainer"]
+[node name="@ColorRect@47180" type="ColorRect" parent="PipContainer"]
 custom_minimum_size = Vector2(13, 13)
 layout_mode = 0
 offset_left = 60.0

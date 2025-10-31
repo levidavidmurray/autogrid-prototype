@@ -319,7 +319,7 @@ func _create_player_units() -> void:
 
 func _create_enemy_units() -> void:
 	var enemy_unit: TileUnit = _create_enemy_unit()
-	enemy_unit.health.set_max_health(15)
+	enemy_unit.health.set_max_health(4)
 	_add_unit_to_grid(enemy_unit, Vector2i(4, 4))
 	enemy_units.append(enemy_unit)
 
