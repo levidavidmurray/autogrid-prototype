@@ -42,10 +42,9 @@ func _apply_attribute(attrib: Ability.EAttribute, ability: Ability, owner: TileO
 
 
 func _create_execute_label(ability: Ability, owner: TileOccupant, target: CellData) -> void:
-	var label = FloatingLabel.new(ability.name)
-	target.grid_square.add_child(label)
-	label.top_level = true
-	label.global_position.y += 0.25
+	var label_pos = target.grid_square.global_position
+	label_pos.y += 0.25
+	G.floating_label(ability.name, label_pos)
 
 
 func _log_attribute_implementation_warning(attribute: Ability.EAttribute) -> void:

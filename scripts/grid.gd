@@ -2,6 +2,8 @@
 class_name Grid
 extends Node3D
 
+static var instance: Grid
+
 signal setup_finished
 
 @export var grid_square_scene: PackedScene
@@ -38,6 +40,14 @@ var cells_1d: Array[CellData]
 var astar: AStar2D
 
 
+func _enter_tree() -> void:
+	Grid.instance = self
+
+
+func _exit_tree() -> void:
+	Grid.instance = null
+
+
 func _process(delta: float) -> void:
 	if is_grid_dirty:
 		_generate_grid()
@@ -45,12 +55,13 @@ func _process(delta: float) -> void:
 	if is_squares_dirty:
 		_update_grid_squares()
 		is_squares_dirty = false
-	# ArrayUtils.for_2d_array(cells, func(cell: CellData):
-	# 	var is_disabled = astar.is_point_disabled(cell.id)
-	# 	DebugDraw3D.draw_sphere(cell.position, 0.25, Color.GRAY if is_disabled else Color.GREEN)
-	# 	cell.grid_square.show()
-	# )
 	
+
+func get_relative_cell(target: CellData, direction: Vector2i) -> CellData:
+	var relative_coord = target.coord + direction
+	if not is_valid_coord(relative_coord):
+		return null
+	return grid_to_cell(relative_coord)
 
 
 func is_grid_ready() -> bool:
@@ -70,6 +81,14 @@ func update_astar_availability_for_player() -> void:
 	)
 
 
+func update_astar_availability_for_enemy() -> void:
+	ArrayUtils.for_2d_array(cells, func(cell: CellData):
+		astar.set_point_disabled(cell.id, not _is_cell_available_for_enemy_units(cell))
+	)
+
+
+# Player units should be able to pathfind through other players unit
+# However, they shouldn't be able to land on the same tile. This will need to be explicitly handled
 func _is_cell_available_for_player_units(cell: CellData) -> bool:
 	if cell.occupant == null:
 		return true
@@ -77,7 +96,35 @@ func _is_cell_available_for_player_units(cell: CellData) -> bool:
 	if tile_unit != null and tile_unit.is_player():
 		return true
 	return false
+
+
+func _is_cell_available_for_enemy_units(cell: CellData) -> bool:
+	if cell.occupant == null:
+		return true
+	var tile_unit = cell.occupant as TileUnit
+	if tile_unit != null and tile_unit.is_enemy():
+		return true
+	return false
 	
+
+# All occupants should be set via this method.
+func set_cell_occupant(cell: CellData, occupant: TileOccupant) -> void:
+	# assert(cell.occupant == null, "cell.occupant must be null")
+	cell.occupant = occupant
+	if occupant != null:
+		if occupant.cell != null:
+			# This is so gross. Please change to single source of truth
+			occupant.cell.occupant = null
+
+		occupant.cell = cell
+		# TODO: Remove
+		# Hack for now until GridRunner is removed/refactored
+		if occupant is TileUnit:
+			occupant.body.global_position = cell.position
+
+
+func get_direction_to_cell(start_cell: CellData, end_cell: CellData) -> Vector2i:
+	return end_cell.coord - start_cell.coord
 
 
 func is_cell_available(coord: Vector2i) -> bool:

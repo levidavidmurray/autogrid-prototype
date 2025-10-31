@@ -6,13 +6,7 @@ var coord: Vector2i
 var position: Vector3
 var grid_square: GridSquare
 
-var occupant: TileOccupant:
-	set(value):
-		occupant = value
-		# TODO: This probably shouldn't be happening here
-		if occupant:
-			occupant.cell = self
-
+var occupant: TileOccupant
 var neighbor_map: Dictionary[GridUtils.ECardinalDirection, CellData]
 
 

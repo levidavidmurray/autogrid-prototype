@@ -45,6 +45,13 @@ func _process(delta: float) -> void:
 	_get_mouse_world_position()
 	_get_cell_at_mouse()
 
+	if not player_units.is_empty():
+		var player = player_units[0]
+		DebugDraw2D.set_text("player.can_move", player.can_move)
+	if not enemy_units.is_empty():
+		var enemy = enemy_units[0]
+		DebugDraw2D.set_text("enemy.can_move", enemy.can_move)
+
 	_process_selected_cell_state()
 	_process_player_unit_state()
 	_process_cell_hover()
@@ -63,18 +70,24 @@ func _unhandled_input(event: InputEvent) -> void:
 				_change_selected_cell(null)
 		if event.button_index == MOUSE_BUTTON_RIGHT and event.is_released():
 			var unit = _get_selected_unit()
-			if unit != null and unit.unit.can_move():
+			if unit != null and unit.can_move:
 				_change_selected_cell(null)
 	elif event is InputEventKey:
 		if event.keycode == KEY_ESCAPE and event.is_released():
 			var unit = _get_selected_unit()
-			if unit != null and unit.unit.can_move():
+			if unit != null and unit.can_move:
 				_change_selected_cell(null)
 		if event.keycode == KEY_1 and event.is_released():
 			var player_unit = player_units[0]
 			preview_ability = player_unit.abilities[0]
 		if event.keycode == KEY_ALT:
 			show_all_ui_data = event.is_pressed()
+		if event.keycode == KEY_P and event.is_released():
+			var enemy_unit = enemy_units[0]
+			if not enemy_unit.can_move:
+				return
+			var player_unit = player_units[0]
+			_enemy_chase_player(enemy_unit, player_unit)
 
 
 func _handle_player_unit_hovered_cell_click() -> void:
@@ -83,7 +96,9 @@ func _handle_player_unit_hovered_cell_click() -> void:
 
 	if player_unit_state == PlayerUnitState.MOVE_PREVIEW:
 		if not move_preview_cell_path.is_empty():
-			player_unit.unit.move(move_preview_cell_path)
+			# player_unit.unit.move(move_preview_cell_path)
+			# _handle_unit_move(player_unit, move_preview_cell_path)
+			NavigatePathAction.create(player_unit, move_preview_cell_path)
 			_change_selected_cell(move_preview_cell_path[-1])
 		else:
 			if target_cell == selected_cell:
@@ -96,9 +111,25 @@ func _handle_player_unit_hovered_cell_click() -> void:
 		# Check if clicked cell is in possible cells for previewed ability
 		var can_execute = ability_helper.can_target_cell(preview_ability, player_unit.cell, target_cell)
 		if can_execute:
-			ability_helper.execute(preview_ability, player_unit, target_cell)
+			StrikeAction.create(player_unit, target_cell)
+			# ability_helper.execute(preview_ability, player_unit, target_cell)
 		preview_ability = null
 		_change_selected_cell(null)
+
+
+func _enemy_chase_player(enemy_unit: TileUnit, player_unit: TileUnit) -> void:
+	var target_cells: Array[CellData] = player_unit.cell.get_neighbor_cells()
+	var target_cell: CellData = null
+	while target_cell == null and not target_cells.is_empty():
+		var cell = target_cells[randi_range(0, target_cells.size()-1)]
+		if cell.occupant != null:
+			target_cells.erase(cell)
+			continue
+		target_cell = cell
+		break
+	grid.update_astar_availability_for_enemy()
+	var cell_path = grid.get_cell_path(enemy_unit.cell, target_cell)
+	await NavigatePathAction.create(enemy_unit, cell_path)
 
 
 func _process_cell_hover() -> void:
@@ -117,7 +148,7 @@ func _process_health_bars(units: Array[TileUnit]) -> void:
 			health_bar.max_health = unit.health.max_health
 			health_bar.current_health = unit.health.current_health
 			health_bar.scale = Vector2.ONE
-			var health_bar_pos = unit.unit.global_position
+			var health_bar_pos = unit.body.global_position
 			health_bar_pos.y += 0.95
 			var pos_2d = camera.unproject_position(health_bar_pos)
 			pos_2d.x -= (health_bar.size.x * health_bar.scale.x) / 2.0
@@ -169,7 +200,7 @@ func _process_player_unit_state_not_selected() -> void:
 
 func _process_player_unit_state_move_preview() -> void:
 	var selected_unit = _get_selected_unit()
-	if not selected_unit.unit.can_move():
+	if not selected_unit.can_move:
 		return
 
 	if hovered_cell != last_hovered_cell:
@@ -294,30 +325,19 @@ func _can_add_unit_to_grid(coord: Vector2i) -> bool:
 	return cell.occupant == null
 
 
-func _create_runner() -> GridRunner:
-	var new_runner = GridRunner.new()
-	new_runner.grid = grid
-	return new_runner
-
-
 func _create_player_unit() -> TileUnit:
-	var new_runner = _create_runner()
-	var cube = cube_scene.instantiate() as Node3D
-	new_runner.add_child(cube)
-	new_runner.shape = cube
-	return TileUnit.new(TileUnit.EType.PLAYER, new_runner)
+	var player_body = cube_scene.instantiate() as Node3D
+	return TileUnit.new(TileUnit.EType.PLAYER, player_body)
 
 
 func _create_enemy_unit() -> TileUnit:
-	var new_runner = _create_runner()
-	var enemy = basic_enemy_scene.instantiate() as Node3D
-	new_runner.add_child(enemy)
-	new_runner.shape = enemy
-	return TileUnit.new(TileUnit.EType.ENEMY, new_runner)
+	var enemy_body = basic_enemy_scene.instantiate() as Node3D
+	return TileUnit.new(TileUnit.EType.ENEMY, enemy_body)
 
 
 func _create_player_units() -> void:
 	var player_unit: TileUnit = _create_player_unit()
+	player_unit.can_move = true
 	_add_unit_to_grid(player_unit, Vector2i(4, 0))
 	var strike_ability = AbilityManager.get_ability_by_name("Strike")
 	player_unit.abilities.append(strike_ability)
@@ -326,6 +346,7 @@ func _create_player_units() -> void:
 
 func _create_enemy_units() -> void:
 	var enemy_unit: TileUnit = _create_enemy_unit()
+	enemy_unit.can_move = true
 	enemy_unit.health.set_max_health(4)
 	_add_unit_to_grid(enemy_unit, Vector2i(4, 4))
 	enemy_units.append(enemy_unit)
@@ -334,7 +355,6 @@ func _create_enemy_units() -> void:
 func _add_unit_to_grid(unit: TileUnit, coord: Vector2i) -> void:
 	assert(grid.is_cell_available(coord))
 	var spawn_cell: CellData = grid.grid_to_cell(coord)
-	var grid_runner: GridRunner = unit.unit
 
 	var health_bar: HealthBarUI = health_bar_ui_scene.instantiate()
 	occupant_id_health_bar_map[unit.id] = health_bar
@@ -342,27 +362,18 @@ func _add_unit_to_grid(unit: TileUnit, coord: Vector2i) -> void:
 	health_bar.max_health = unit.health.max_health
 	health_bar.current_health = unit.health.current_health
 
-	grid_runner.move_finished.connect(_on_grid_runner_move_finished.bind(unit))
-	grid_runner.cell_changed.connect(_on_grid_runner_cell_changed.bind(unit))
 	unit.health.current_health_changed.connect(_on_tile_occupant_health_changed.bind(unit))
 	unit.health.died.connect(_on_tile_occupant_died.bind(unit))
 
 	# TODO: Figure out what's happening with GridRunner current_cell and CellData occupant setters
-	grid_runner.current_cell = spawn_cell
-	spawn_cell.occupant = unit
-	grid.add_child(grid_runner)
-	grid_runner.snap_to_current_cell()
+	# grid_runner.current_cell = spawn_cell
+	grid.add_child(unit.body)
+	grid.set_cell_occupant(spawn_cell, unit)
 
 
 func _on_grid_setup_finished() -> void:
 	_create_player_units()
 	_create_enemy_units()
-
-
-func _on_grid_runner_cell_changed(prev_cell: CellData, new_cell: CellData, unit: TileUnit) -> void:
-	if prev_cell != null and prev_cell.occupant == unit:
-		prev_cell.occupant = null
-	new_cell.occupant = unit
 
 
 func _on_grid_runner_move_finished(unit: TileUnit) -> void:

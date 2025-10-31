@@ -5,3 +5,4 @@ var id: String = UUID.v4()
 var cell: CellData
 var abilities: Array[Ability]
 var health: Health = Health.new()
+var body: Node3D

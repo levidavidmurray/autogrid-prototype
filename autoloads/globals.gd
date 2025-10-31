@@ -40,3 +40,10 @@ func get_bezier_position(origin_pos: Vector3, origin_control: Vector3, target_po
 	var d = a.lerp(b, t)
 	var e = b.lerp(c, t)
 	return d.lerp(e, t)
+
+
+func floating_label(text: String, label_pos: Vector3) -> FloatingLabel:
+	var label = FloatingLabel.new(text)
+	add_child(label)
+	label.global_position = label_pos
+	return label
