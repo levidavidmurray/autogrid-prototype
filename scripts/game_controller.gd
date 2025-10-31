@@ -14,7 +14,6 @@ enum PlayerUnitState {
 @export var camera: Camera3D
 
 var player_unit_state: PlayerUnitState
-var ability_helper: AbilityHelper
 var player_units: Array[TileUnit]
 var enemy_units: Array[TileUnit]
 
@@ -24,7 +23,7 @@ var selected_cell: CellData
 
 var last_hovered_cell: CellData
 var move_preview_cell_path: Array[CellData]
-var preview_ability: Ability
+var preview_ability: AbstractAbility
 var show_all_ui_data: bool = false
 
 var health_bar_ui: HealthBarUI
@@ -35,7 +34,6 @@ var occupant_id_health_bar_map: Dictionary[String, HealthBarUI]
 
 func _ready() -> void:
 	grid.setup_finished.connect(_on_grid_setup_finished)
-	ability_helper = AbilityHelper.new(grid)
 
 
 func _process(delta: float) -> void:
@@ -44,13 +42,6 @@ func _process(delta: float) -> void:
 
 	_get_mouse_world_position()
 	_get_cell_at_mouse()
-
-	if not player_units.is_empty():
-		var player = player_units[0]
-		DebugDraw2D.set_text("player.can_move", player.can_move)
-	if not enemy_units.is_empty():
-		var enemy = enemy_units[0]
-		DebugDraw2D.set_text("enemy.can_move", enemy.can_move)
 
 	_process_selected_cell_state()
 	_process_player_unit_state()
@@ -109,10 +100,9 @@ func _handle_player_unit_hovered_cell_click() -> void:
 
 	if player_unit_state == PlayerUnitState.ABILITY_PREVIEW:
 		# Check if clicked cell is in possible cells for previewed ability
-		var can_execute = ability_helper.can_target_cell(preview_ability, player_unit.cell, target_cell)
+		var can_execute = AbilityHelper.can_target_cell(preview_ability, player_unit.cell, target_cell)
 		if can_execute:
-			StrikeAction.create(player_unit, target_cell)
-			# ability_helper.execute(preview_ability, player_unit, target_cell)
+			preview_ability.execute(player_unit, target_cell)
 		preview_ability = null
 		_change_selected_cell(null)
 
@@ -153,9 +143,6 @@ func _process_health_bars(units: Array[TileUnit]) -> void:
 			var pos_2d = camera.unproject_position(health_bar_pos)
 			pos_2d.x -= (health_bar.size.x * health_bar.scale.x) / 2.0
 			health_bar.global_position = pos_2d
-			if unit.is_player():
-				# health_bar.max_health = 5
-				DebugDraw2D.set_text(unit.to_string(), health_bar.custom_minimum_size)
 
 
 func _process_selected_cell_state() -> void:
@@ -215,7 +202,7 @@ func _process_player_unit_state_move_preview() -> void:
 func _process_player_unit_state_ability_preview() -> void:
 	DebugDraw2D.set_text("Ability Preview", preview_ability)
 	var selected_unit = _get_selected_unit()
-	var target_cells = ability_helper.get_possible_target_cells(preview_ability, selected_unit.cell)
+	var target_cells = AbilityHelper.get_possible_target_cells(preview_ability, selected_unit.cell)
 	GridUtils.draw_cells(target_cells, Color.RED)
 
 
@@ -339,7 +326,7 @@ func _create_player_units() -> void:
 	var player_unit: TileUnit = _create_player_unit()
 	player_unit.can_move = true
 	_add_unit_to_grid(player_unit, Vector2i(4, 0))
-	var strike_ability = AbilityManager.get_ability_by_name("Strike")
+	var strike_ability = StrikeAbility.new()
 	player_unit.abilities.append(strike_ability)
 	player_units.append(player_unit)
 
