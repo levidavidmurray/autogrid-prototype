@@ -10,6 +10,8 @@ enum PlayerUnitState {
 @export var cube_scene: PackedScene
 @export var basic_enemy_scene: PackedScene
 @export var grid: Grid
+@export var health_bar_ui_scene: PackedScene
+@export var camera: Camera3D
 
 var player_unit_state: PlayerUnitState
 var ability_helper: AbilityHelper
@@ -23,6 +25,11 @@ var selected_cell: CellData
 var last_hovered_cell: CellData
 var move_preview_cell_path: Array[CellData]
 var preview_ability: Ability
+
+var health_bar_ui: HealthBarUI
+
+var occupant_id_health_bar_map: Dictionary[String, HealthBarUI]
+
 
 
 func _ready() -> void:
@@ -39,6 +46,7 @@ func _process(delta: float) -> void:
 
 	_process_selected_cell_state()
 	_process_player_unit_state()
+	_process_cell_hover()
 
 	last_hovered_cell = hovered_cell
 
@@ -88,6 +96,28 @@ func _handle_player_unit_hovered_cell_click() -> void:
 			ability_helper.execute(preview_ability, player_unit, target_cell)
 		preview_ability = null
 		_change_selected_cell(null)
+
+
+func _process_cell_hover() -> void:
+	# TODO: Change when we have an array of all occupants
+	_process_health_bars(player_units)
+	_process_health_bars(enemy_units)
+
+
+func _process_health_bars(units: Array[TileUnit]) -> void:
+	for unit in units:
+		var health_bar = occupant_id_health_bar_map[unit.id]
+		health_bar.hide()
+		if hovered_cell != null and unit == hovered_cell.occupant:
+			health_bar.show()
+			health_bar.max_health = unit.health.max_health
+			health_bar.current_health = unit.health.current_health
+			health_bar.scale = Vector2.ONE
+			var health_bar_pos = hovered_cell.position
+			health_bar_pos.y += 0.95
+			var pos_2d = camera.unproject_position(health_bar_pos)
+			pos_2d.x -= (health_bar.size.x * health_bar.scale.x) / 2.0
+			health_bar.global_position = pos_2d
 
 
 func _process_selected_cell_state() -> void:
@@ -289,7 +319,7 @@ func _create_player_units() -> void:
 
 func _create_enemy_units() -> void:
 	var enemy_unit: TileUnit = _create_enemy_unit()
-	enemy_unit.health.max_health = 4
+	enemy_unit.health.set_max_health(15)
 	_add_unit_to_grid(enemy_unit, Vector2i(4, 4))
 	enemy_units.append(enemy_unit)
 
@@ -298,6 +328,12 @@ func _add_unit_to_grid(unit: TileUnit, coord: Vector2i) -> void:
 	assert(grid.is_cell_available(coord))
 	var spawn_cell: CellData = grid.grid_to_cell(coord)
 	var grid_runner: GridRunner = unit.unit
+
+	var health_bar: HealthBarUI = health_bar_ui_scene.instantiate()
+	occupant_id_health_bar_map[unit.id] = health_bar
+	add_child(health_bar)
+	health_bar.max_health = unit.health.max_health
+	health_bar.current_health = unit.health.current_health
 
 	grid_runner.move_finished.connect(_on_grid_runner_move_finished.bind(unit))
 	grid_runner.cell_changed.connect(_on_grid_runner_cell_changed.bind(unit))
@@ -329,6 +365,9 @@ func _on_grid_runner_move_finished(unit: TileUnit) -> void:
 
 func _on_tile_occupant_health_changed(prev_health: int, new_health: int, occupant: TileOccupant) -> void:
 	Log.debug("%s health changed %s->%s" % [occupant, prev_health, new_health])
+	if occupant_id_health_bar_map.has(occupant.id):
+		var health_bar: HealthBarUI = occupant_id_health_bar_map[occupant.id]
+		health_bar.current_health = occupant.health.current_health
 
 
 func _on_tile_occupant_died(occupant: TileOccupant) -> void:

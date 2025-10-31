@@ -24,6 +24,11 @@ func _init(_max_health: int = 5) -> void:
 	current_health = max_health
 
 
+func set_max_health(_max_health: int) -> void:
+	max_health = _max_health
+	current_health = max_health
+
+
 func add_health(amount: int) -> void:
 	current_health = clampi(current_health + amount, 0, max_health)
 

@@ -85,3 +85,13 @@ visible = false
 [node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.4969511, 0)
 shape = SubResource("BoxShape3D_h2yge")
+
+[node name="BasicEnemy" parent="." instance=ExtResource("3_7mycd")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, 3)
+
+[node name="HealthBarUI" parent="." instance=ExtResource("8_5vw27")]
+offset_left = 831.0
+offset_top = 456.0
+offset_right = 830.83997
+offset_bottom = 456.32
+scale = Vector2(0.7, 0.7)
