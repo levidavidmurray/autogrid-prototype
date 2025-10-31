@@ -25,6 +25,7 @@ var selected_cell: CellData
 var last_hovered_cell: CellData
 var move_preview_cell_path: Array[CellData]
 var preview_ability: Ability
+var show_all_ui_data: bool = false
 
 var health_bar_ui: HealthBarUI
 
@@ -72,6 +73,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event.keycode == KEY_1 and event.is_released():
 			var player_unit = player_units[0]
 			preview_ability = player_unit.abilities[0]
+		if event.keycode == KEY_ALT:
+			show_all_ui_data = event.is_pressed()
 
 
 func _handle_player_unit_hovered_cell_click() -> void:
@@ -108,16 +111,20 @@ func _process_health_bars(units: Array[TileUnit]) -> void:
 	for unit in units:
 		var health_bar = occupant_id_health_bar_map[unit.id]
 		health_bar.hide()
-		if hovered_cell != null and unit == hovered_cell.occupant:
+		var should_show_health_bar = hovered_cell != null and unit == hovered_cell.occupant
+		if should_show_health_bar or show_all_ui_data:
 			health_bar.show()
 			health_bar.max_health = unit.health.max_health
 			health_bar.current_health = unit.health.current_health
 			health_bar.scale = Vector2.ONE
-			var health_bar_pos = hovered_cell.position
+			var health_bar_pos = unit.unit.global_position
 			health_bar_pos.y += 0.95
 			var pos_2d = camera.unproject_position(health_bar_pos)
 			pos_2d.x -= (health_bar.size.x * health_bar.scale.x) / 2.0
 			health_bar.global_position = pos_2d
+			if unit.is_player():
+				# health_bar.max_health = 5
+				DebugDraw2D.set_text(unit.to_string(), health_bar.custom_minimum_size)
 
 
 func _process_selected_cell_state() -> void:

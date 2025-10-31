@@ -46,7 +46,6 @@ var max_health_size_map: Dictionary[int, float] = {
     2: 48,
     3: 48,
     4: 64,
-    5: 77,
     6: 77,
     8: 90,
     12: 100,
@@ -136,6 +135,7 @@ func _update_pips_width() -> void:
 
     # Very dumb stuff just trying to make it work...
     size.x = ((base_pip_width * max_health) + (separation * (max_health - 1))) + 4.0
+    custom_minimum_size = size
     _constrain_to_size()
     container_width = pip_container_target_size.x
 
@@ -154,6 +154,7 @@ func _update_pips_width() -> void:
         if i != pips.size() - 1:
             added_width += separation
         width_total += added_width
+
     pip_container.size = pip_container_target_size
     last_width = size.x
 
