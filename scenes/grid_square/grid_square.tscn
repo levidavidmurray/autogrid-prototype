@@ -4,7 +4,7 @@
 [ext_resource type="Shader" uid="uid://du0j3lbu8dt7l" path="res://shaders/grid_square.gdshader" id="1_y1pps"]
 
 [sub_resource type="QuadMesh" id="QuadMesh_r72ee"]
-size = Vector2(1.02, 1.02)
+size = Vector2(1.03, 1.03)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_anhxp"]
 resource_local_to_scene = true
@@ -21,8 +21,8 @@ hover_base_color = Color(0.1254902, 0.18039216, 0.29803923, 1)
 hover_outline_color = Color(0.22352941, 0.30588236, 0.48235294, 1)
 selected_base_color = Color(0.17708635, 0.29774183, 0.34193015, 1)
 selected_outline_color = Color(0.24439058, 0.41567555, 0.42665297, 1)
-moveable_base_color = Color(0.20769998, 0.31, 0.25544, 1)
-moveable_outline_color = Color(0.256, 0.4, 0.28959998, 1)
+moveable_base_color = Color(0.17400002, 0.3, 0.26430002, 1)
+moveable_outline_color = Color(0.20865515, 0.37458825, 0.32827774, 1)
 targeted_base_color = Color(0.3627746, 0.13889334, 0.10393465, 1)
 targeted_outline_color = Color(0.44194552, 0.24092126, 0.2409139, 1)
 

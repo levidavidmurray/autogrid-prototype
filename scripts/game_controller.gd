@@ -34,8 +34,6 @@ var preview_ability: AbstractAbility
 var preview_ability_target_cells: Array[CellData]
 var show_all_ui_data: bool = false
 
-var health_bar_ui: HealthBarUI
-
 var occupant_id_health_bar_map: Dictionary[String, HealthBarUI]
 var unit_id_valid_moves_map: Dictionary[String, Array] # Dictionary[String, Array[CellData]]
 var enemy_intent_map: Dictionary[TileUnit, AbilityIntent]
@@ -461,5 +459,9 @@ func _on_tile_occupant_died(occupant: TileOccupant) -> void:
 	Log.info("%s died" % occupant)
 
 
-func _on_unit_cell_changed(_prev: CellData, _new: CellData, unit: TileUnit) -> void:
+func _on_unit_cell_changed(prev_cell: CellData, new_cell: CellData, unit: TileUnit) -> void:
+	if unit.is_enemy() and _enemy_has_intent(unit):
+		var intent = enemy_intent_map[unit]
+		var prev_target_cell = Grid.instance.get_relative_cell(prev_cell, intent.target_direction)
+		prev_target_cell.grid_square.is_targeted = false
 	_calculate_valid_moves_for_unit(unit)
