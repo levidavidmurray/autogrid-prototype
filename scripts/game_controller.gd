@@ -287,7 +287,12 @@ func _calculate_unit_move_path(unit: TileUnit, cell: CellData) -> void:
 		return
 	if not unit.can_move or not unit.is_cell_in_move_range(cell):
 		return
-	move_preview_cell_path = grid.get_cell_path(unit.cell, cell)
+	var cell_path = grid.get_cell_path(unit.cell, cell)
+	if cell_path.size() - 1 > unit.max_move_distance:
+		return
+	move_preview_cell_path = cell_path
+	
+
 
 
 func _calculate_valid_moves_for_unit(unit: TileUnit) -> void:
