@@ -1,6 +1,7 @@
 class_name GuidingStrikeAbility
 extends AbstractAbility
 
+static var sfx_dash_stream: AudioStream = load("res://assets/sfx/SFX_Ability_GuidingStrike_Dash.wav")
 
 var damage: int = 1
 
@@ -13,14 +14,17 @@ func execute(owner: TileUnit, target_cell: CellData):
 	super(owner, target_cell)
 
 	var raw_dir = Grid.instance.get_direction_to_cell(owner.cell, target_cell)
-	var stop_cell_dir = -(raw_dir.clampi(-1, 1))
-	var stop_cell: CellData = Grid.instance.get_relative_cell(target_cell, stop_cell_dir)
 
-	# await MoveAction.create(owner, raw_dir + stop_cell_dir)
+	var dash_pitch = remap(raw_dir.length(), 1, 8, 1.1, 0.8)
+	var dash_sound = SoundData.new(sfx_dash_stream, 0.0, dash_pitch)
+	AudioManager.play_sound(dash_sound)
+
+	if target_cell.occupant:
+		AudioManager.play_sound(SoundData.new(get_sfx(), -10.0, 1.0, 0.1))
+
 	await SprintBounceAction.create(owner, target_cell)
 
 	if target_cell.occupant:
-		play_sfx()
 		await DamageAction.create(target_cell.occupant, damage)
 
 		var target_body = target_cell.occupant.body
