@@ -1,0 +1,21 @@
+[gd_scene load_steps=6 format=3 uid="uid://b43rsxha0e5yi"]
+
+[ext_resource type="Script" uid="uid://dxjc3l45g74g" path="res://autoloads/scenes/audio_manager.gd" id="1_vb7hk"]
+[ext_resource type="AudioStream" uid="uid://dxsmqn2vaojcw" path="res://assets/sfx/SFX_Move0.ogg" id="2_u0255"]
+[ext_resource type="AudioStream" uid="uid://ccm1if6cilwlf" path="res://assets/sfx/SFX_Move1.ogg" id="3_8u4cj"]
+[ext_resource type="AudioStream" uid="uid://dv8r0ewe4gi4e" path="res://assets/sfx/SFX_Move2.ogg" id="4_gyf35"]
+
+[sub_resource type="AudioStreamRandomizer" id="AudioStreamRandomizer_8u4cj"]
+streams_count = 3
+stream_0/stream = ExtResource("2_u0255")
+stream_1/stream = ExtResource("3_8u4cj")
+stream_2/stream = ExtResource("4_gyf35")
+
+[node name="AudioManager" type="Node"]
+script = ExtResource("1_vb7hk")
+
+[node name="SFX_Move" type="AudioStreamPlayer" parent="."]
+stream = SubResource("AudioStreamRandomizer_8u4cj")
+volume_db = -13.0
+pitch_scale = 2.0
+max_polyphony = 2

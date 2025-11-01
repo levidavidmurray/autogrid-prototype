@@ -8,13 +8,10 @@ func _init() -> void:
 	self.cast_type = ECastType.ADJACENT
 
 
-func get_description() -> String:
-	return "Deal %s damage" % damage
-
-
 func execute(owner: TileUnit, target_cell: CellData):
 	super(owner, target_cell)
 
+	play_sfx()
 	if target_cell.occupant:
 		await DamageAction.create(target_cell.occupant, damage)
 
@@ -26,3 +23,9 @@ func execute(owner: TileUnit, target_cell: CellData):
 		await PushAction.create(owner.cell, target_cell.occupant)
 
 
+func play_sfx(volume_db: float = -10.0) -> void:
+	super(volume_db)
+
+
+func get_description() -> String:
+	return "Deal %s damage" % damage
