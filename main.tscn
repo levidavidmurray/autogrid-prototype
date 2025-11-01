@@ -59,6 +59,7 @@ metadata/_custom_type_script = "uid://chrm3c00y0n16"
 [node name="Grid" type="Node3D" parent="."]
 script = ExtResource("1_ig7tw")
 grid_square_scene = ExtResource("4_lquwl")
+grid_size = Vector2i(9, 9)
 line_color = Color(0.15451863, 0.21983898, 0.3557675, 1)
 line_width = 0.03
 
