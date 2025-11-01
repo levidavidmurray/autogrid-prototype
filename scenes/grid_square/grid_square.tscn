@@ -4,18 +4,27 @@
 [ext_resource type="Shader" uid="uid://du0j3lbu8dt7l" path="res://shaders/grid_square.gdshader" id="1_y1pps"]
 
 [sub_resource type="QuadMesh" id="QuadMesh_r72ee"]
-size = Vector2(1.03, 1.03)
+size = Vector2(1.02, 1.02)
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_anhxp"]
 resource_local_to_scene = true
 render_priority = 0
 shader = ExtResource("1_y1pps")
 shader_parameter/base_color = Color(0.09411765, 0.14117648, 0.23921569, 1)
-shader_parameter/line_color = Color(1, 1, 1, 1)
+shader_parameter/line_color = Color(0.15294118, 0.21960784, 0.35686275, 1)
 shader_parameter/line_width = 0.02
 
 [node name="GridSquare" type="Node3D"]
 script = ExtResource("1_anhxp")
+line_color = Color(0.15294118, 0.21960784, 0.35686275, 1)
+hover_base_color = Color(0.1254902, 0.18039216, 0.29803923, 1)
+hover_outline_color = Color(0.22352941, 0.30588236, 0.48235294, 1)
+selected_base_color = Color(0.17708635, 0.29774183, 0.34193015, 1)
+selected_outline_color = Color(0.24439058, 0.41567555, 0.42665297, 1)
+moveable_base_color = Color(0.18133703, 0.31474268, 0.18427044, 1)
+moveable_outline_color = Color(0.23894331, 0.43677694, 0.2346403, 1)
+targeted_base_color = Color(0.3627746, 0.13889334, 0.10393465, 1)
+targeted_outline_color = Color(0.44194552, 0.24092126, 0.2409139, 1)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 0, 0)
@@ -24,8 +33,9 @@ surface_material_override/0 = SubResource("ShaderMaterial_anhxp")
 
 [node name="DebugLabel" type="Label3D" parent="."]
 transform = Transform3D(-1, -8.742278e-08, 0, -3.821371e-15, 4.371139e-08, 1, -8.742278e-08, 1, -4.371139e-08, -0.44049454, 0.010615006, 0.3387617)
-modulate = Color(0.21118024, 0.31133077, 0.47463936, 1)
-outline_modulate = Color(0, 0, 0, 0)
+render_priority = 1
+modulate = Color(0.21176472, 0.309804, 0.4745098, 1)
 text = "(0,0)"
 font_size = 24
+outline_size = 0
 horizontal_alignment = 2

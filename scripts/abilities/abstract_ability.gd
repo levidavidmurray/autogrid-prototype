@@ -34,3 +34,7 @@ func get_sfx() -> AudioStream:
 func get_description() -> String:
 	Log.warn("get_description for Ability(%s) is not implemented")
 	return "Ability Description"
+
+
+func _to_string() -> String:
+	return "Ability(%s)" % name

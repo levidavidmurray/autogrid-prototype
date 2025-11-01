@@ -47,3 +47,38 @@ func floating_label(text: String, label_pos: Vector3) -> FloatingLabel:
 	add_child(label)
 	label.global_position = label_pos
 	return label
+
+
+func color_to_hsv(color: Color) -> Vector3:
+	var h: float
+	var s: float
+	var v: float
+
+	var r = color.r
+	var g = color.g
+	var b = color.b
+
+	var max_val = max(r, g, b)
+	var min_val = min(r, g, b)
+	var delta = max_val - min_val
+
+	v = max_val
+
+	if max_val == 0:
+		s = 0
+		h = 0 # Undefined, but often set to 0
+	else:
+		s = delta / max_val
+		if delta == 0:
+			h = 0 # Undefined, but often set to 0
+		elif max_val == r:
+			h = (g - b) / delta
+		elif max_val == g:
+			h = (b - r) / delta + 2
+		else: # max_val == b
+			h = (r - g) / delta + 4
+		h /= 6.0 # Normalize hue to 0-1 range
+		if h < 0:
+			h += 1.0
+
+	return Vector3(h, s, v)

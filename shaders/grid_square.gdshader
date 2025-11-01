@@ -15,9 +15,10 @@ vec4 square(vec2 uv, float width)
 }
 
 void fragment() {
+	vec4 color = base_color;
 	if (square(UV, 1.0 - (line_width * 2.0)).r > 0.0) {
-		ALBEDO = line_color.rgb;
-	} else {
-		ALBEDO = base_color.rgb;
+		color = line_color;
 	}
+	ALBEDO = color.rgb;
+	ALPHA = color.a;
 }

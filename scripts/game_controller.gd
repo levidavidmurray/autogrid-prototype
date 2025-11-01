@@ -13,7 +13,14 @@ enum PlayerUnitState {
 @export var health_bar_ui_scene: PackedScene
 @export var camera: Camera3D
 
-var player_unit_state: PlayerUnitState
+var player_unit_state: PlayerUnitState:
+	set(value):
+		if value == player_unit_state:
+			return
+		var prev = player_unit_state
+		player_unit_state = value
+		_handle_player_unit_state_change(prev, value)
+
 var player_units: Array[TileUnit]
 var enemy_units: Array[TileUnit]
 
@@ -24,6 +31,7 @@ var selected_cell: CellData
 var last_hovered_cell: CellData
 var move_preview_cell_path: Array[CellData] # TODO: Remove?
 var preview_ability: AbstractAbility
+var preview_ability_target_cells: Array[CellData]
 var show_all_ui_data: bool = false
 
 var health_bar_ui: HealthBarUI
@@ -60,14 +68,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			else:
 				_change_selected_cell(null)
 		if event.button_index == MOUSE_BUTTON_RIGHT and event.is_released():
-			var unit = _get_selected_unit()
-			if unit != null and unit.can_move:
-				_change_selected_cell(null)
+			_change_selected_cell(null)
 	elif event is InputEventKey:
 		if event.keycode == KEY_ESCAPE and event.is_released():
-			var unit = _get_selected_unit()
-			if unit != null and unit.can_move:
-				_change_selected_cell(null)
+			_change_selected_cell(null)
 		if event.keycode == KEY_1 and event.is_released():
 			var player_unit = player_units[0]
 			preview_ability = player_unit.abilities[0]
@@ -79,6 +83,26 @@ func _unhandled_input(event: InputEvent) -> void:
 				return
 			var player_unit = player_units[0]
 			_enemy_chase_player(enemy_unit, player_unit)
+
+
+func _change_selected_cell(new_cell: CellData) -> void:
+	if _is_player_unit_selected():
+		for cell: CellData in unit_id_valid_moves_map[_get_selected_unit().id]:
+			cell.grid_square.is_moveable = false
+
+	if selected_cell != null:
+		_set_cell_selected_state(selected_cell, false)
+		if new_cell == selected_cell or new_cell == null:
+			selected_cell = null
+			return
+
+	if new_cell != null:
+		_set_cell_selected_state(new_cell, true)
+
+	selected_cell = new_cell
+
+	if _is_player_unit_selected():
+		_calculate_valid_moves_for_unit(_get_selected_unit())
 
 
 func _handle_player_unit_hovered_cell_click() -> void:
@@ -155,7 +179,20 @@ func _process_selected_cell_state() -> void:
 		return
 	DebugDraw2D.set_text("Occupant", occupant, 1)
 	DebugDraw2D.set_text("Health", occupant.health.get_health_string(), 2)
-	
+
+
+func _handle_player_unit_state_change(prev: PlayerUnitState, new: PlayerUnitState) -> void:
+	var selected_unit = _get_selected_unit()
+
+	if new == PlayerUnitState.ABILITY_PREVIEW:
+		preview_ability_target_cells = AbilityHelper.get_possible_target_cells(preview_ability, selected_unit.cell)
+		for cell in preview_ability_target_cells:
+			cell.grid_square.is_targeted = true
+
+	if prev == PlayerUnitState.ABILITY_PREVIEW:
+		for cell in preview_ability_target_cells:
+			cell.grid_square.is_targeted = false
+		preview_ability_target_cells.clear()
 
 
 func _check_player_unit_state_change() -> void:
@@ -197,7 +234,10 @@ func _process_player_unit_state_move_preview() -> void:
 	if not unit_id_valid_moves_map.has(selected_unit.id):
 		_calculate_valid_moves_for_unit(selected_unit)
 
-	GridUtils.draw_cells(unit_id_valid_moves_map[selected_unit.id])
+	for cell: CellData in unit_id_valid_moves_map[selected_unit.id]:
+		cell.grid_square.is_moveable = true
+
+	# GridUtils.draw_cells(unit_id_valid_moves_map[selected_unit.id])
 	
 	# TODO: Remove move_preview_cell_path?
 	if hovered_cell == null or hovered_cell == selected_unit.cell:
@@ -208,9 +248,8 @@ func _process_player_unit_state_move_preview() -> void:
 
 func _process_player_unit_state_ability_preview() -> void:
 	DebugDraw2D.set_text("Ability Preview", preview_ability)
-	var selected_unit = _get_selected_unit()
-	var target_cells = AbilityHelper.get_possible_target_cells(preview_ability, selected_unit.cell)
-	GridUtils.draw_cells(target_cells, Color.RED)
+	for cell: CellData in unit_id_valid_moves_map[_get_selected_unit().id]:
+		cell.grid_square.is_moveable = false
 
 
 func _is_player_unit_selected() -> bool:
@@ -265,65 +304,24 @@ func _calculate_valid_moves_for_unit(unit: TileUnit) -> void:
 			valid_cells.append(cell)
 
 
-func _change_selected_cell(new_cell: CellData) -> void:
-	if selected_cell != null:
-		_set_cell_selected_state(selected_cell, false)
-		if new_cell == selected_cell or new_cell == null:
-			selected_cell = null
-			return
-
-	if new_cell != null:
-		_set_cell_selected_state(new_cell, true)
-
-	selected_cell = new_cell
-
-	if _is_player_unit_selected():
-		_calculate_valid_moves_for_unit(_get_selected_unit())
-
-
 func _get_cell_at_mouse() -> void:
 	var cell: CellData = grid.get_closest_cell_to_world_pos(mouse_world_pos)
 
 	if cell != hovered_cell:
-		if hovered_cell != null and hovered_cell != selected_cell:
+		if hovered_cell != null:
 			_set_cell_hovered_state(hovered_cell, false)
-		if cell != null and cell != selected_cell:
+		if cell != null:
 			_set_cell_hovered_state(cell, true)
 
 	hovered_cell = cell
 
 
 func _set_cell_selected_state(cell: CellData, is_selected: bool) -> void:
-	if is_selected:
-		_set_grid_square_color(cell, Color.ORANGE)
-		# for adj_cell in cell.get_neighbor_cells():
-		# 	_set_grid_square_color(adj_cell, lerp(grid.line_color, Color.RED, 0.6), 0.0005)
-	else:
-		_reset_grid_square_color(cell)
-		# for adj_cell in cell.get_neighbor_cells():
-		# 	_reset_grid_square_color(adj_cell)
+	cell.grid_square.is_selected = is_selected
 
 
 func _set_cell_hovered_state(cell: CellData, is_hovered: bool) -> void:
-	if is_hovered:
-		_set_grid_square_color(cell, lerp(grid.line_color, Color.ORANGE, 0.75))
-	else:
-		_reset_grid_square_color(cell)
-
-
-func _reset_grid_square_color(cell: CellData) -> void:
-	_set_grid_square_color(cell, grid.line_color)
-
-
-func _set_grid_square_color(cell: CellData, color: Color, y_pos: float = 0.001) -> void:
-	if color == grid.line_color:
-		cell.grid_square.line_color = grid.line_color
-		cell.grid_square.position.y = 0.0
-		cell.grid_square.scale = Vector3.ONE
-	else:
-		cell.grid_square.line_color = color
-		cell.grid_square.position.y = y_pos
-		cell.grid_square.scale = Vector3.ONE * 1.02
+	cell.grid_square.is_hovered = is_hovered
 
 
 func _get_mouse_world_position() -> void:
