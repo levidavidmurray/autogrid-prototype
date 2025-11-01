@@ -123,18 +123,18 @@ func _calculate_target_colors() -> void:
 	var new_base_color = base_color
 	var new_outline_color = line_color
 
-	if is_moveable:
+	if is_selected:
+		new_base_color = selected_base_color
+		new_outline_color = selected_outline_color
+		mesh_instance.position.y = 0.003
+	elif is_moveable:
 		new_base_color = moveable_base_color
 		new_outline_color = moveable_outline_color
-		mesh_instance.position.y = 0.003
+		mesh_instance.position.y = 0.002
 	elif is_targeted:
 		new_base_color = targeted_base_color
 		new_outline_color = targeted_outline_color
-		mesh_instance.position.y = 0.003
-	elif is_selected:
-		new_base_color = selected_base_color
-		new_outline_color = selected_outline_color
-		mesh_instance.position.y = 0.001
+		mesh_instance.position.y = 0.002
 	else:
 		new_base_color = base_color
 		new_outline_color = line_color
@@ -142,8 +142,8 @@ func _calculate_target_colors() -> void:
 
 	if is_hovered:
 		new_base_color = _get_offset_color(hover_base_hsv_offset, new_base_color)
-		new_base_color = _get_offset_color(hover_outline_hsv_offset, new_outline_color)
-		mesh_instance.position.y = 0.002
+		new_outline_color = _get_offset_color(hover_outline_hsv_offset, new_outline_color)
+		mesh_instance.position.y += 0.001
 	
 	target_base_color = new_base_color
 	target_outline_color = new_outline_color
