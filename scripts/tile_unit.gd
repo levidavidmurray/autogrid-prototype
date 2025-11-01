@@ -4,6 +4,7 @@ extends TileOccupant
 enum EType { PLAYER, ENEMY, NPC }
 
 var type: EType
+var max_move_distance: int = 3
 var can_move: bool
 
 
@@ -22,6 +23,10 @@ func is_enemy() -> bool:
 
 func is_npc() -> bool:
 	return type == EType.NPC
+
+
+func is_cell_in_move_range(target_cell: CellData) -> bool:
+	return GridUtils.manhattan_distance(cell.coord, target_cell.coord) <= max_move_distance
 
 
 func _to_string() -> String:

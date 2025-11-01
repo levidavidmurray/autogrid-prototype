@@ -22,14 +22,14 @@ var hovered_cell: CellData
 var selected_cell: CellData
 
 var last_hovered_cell: CellData
-var move_preview_cell_path: Array[CellData]
+var move_preview_cell_path: Array[CellData] # TODO: Remove?
 var preview_ability: AbstractAbility
 var show_all_ui_data: bool = false
 
 var health_bar_ui: HealthBarUI
 
 var occupant_id_health_bar_map: Dictionary[String, HealthBarUI]
-
+var unit_id_valid_moves_map: Dictionary[String, Array] # Dictionary[String, Array[CellData]]
 
 
 func _ready() -> void:
@@ -88,14 +88,15 @@ func _handle_player_unit_hovered_cell_click() -> void:
 	if player_unit_state == PlayerUnitState.MOVE_PREVIEW:
 		if not move_preview_cell_path.is_empty():
 			var final_cell = move_preview_cell_path[-1]
+			_change_selected_cell(null)
 			await NavigatePathAction.create(player_unit, move_preview_cell_path)
-			_change_selected_cell(final_cell)
-			_calculate_unit_move_path(player_unit)
+			_calculate_unit_move_path(player_unit, final_cell)
+			return
+
+		if target_cell == selected_cell:
+			_change_selected_cell(null)
 		else:
-			if target_cell == selected_cell:
-				_change_selected_cell(null)
-			else:
-				_change_selected_cell(target_cell)
+			_change_selected_cell(target_cell)
 		return
 
 	if player_unit_state == PlayerUnitState.ABILITY_PREVIEW:
@@ -191,12 +192,18 @@ func _process_player_unit_state_move_preview() -> void:
 		return
 
 	if hovered_cell != last_hovered_cell:
-		_calculate_unit_move_path(selected_unit)
+		_calculate_unit_move_path(selected_unit, hovered_cell)
+
+	if not unit_id_valid_moves_map.has(selected_unit.id):
+		_calculate_valid_moves_for_unit(selected_unit)
+
+	GridUtils.draw_cells(unit_id_valid_moves_map[selected_unit.id])
 	
+	# TODO: Remove move_preview_cell_path?
 	if hovered_cell == null or hovered_cell == selected_unit.cell:
 		move_preview_cell_path.clear()
 
-	GridUtils.draw_cell_path(move_preview_cell_path)
+	# GridUtils.draw_cell_path(move_preview_cell_path)
 
 
 func _process_player_unit_state_ability_preview() -> void:
@@ -235,9 +242,27 @@ func _is_occupant_selected() -> bool:
 	return selected_cell.occupant != null
 
 
-func _calculate_unit_move_path(unit: TileUnit) -> void:
-	if hovered_cell != null and hovered_cell != unit.cell:
-		move_preview_cell_path = grid.get_cell_path(unit.cell, hovered_cell)
+func _calculate_unit_move_path(unit: TileUnit, cell: CellData) -> void:
+	move_preview_cell_path.clear()
+	if cell == null or cell == unit.cell:
+		return
+	if not unit.can_move or not unit.is_cell_in_move_range(cell):
+		return
+	move_preview_cell_path = grid.get_cell_path(unit.cell, cell)
+
+
+func _calculate_valid_moves_for_unit(unit: TileUnit) -> void:
+	var cells_in_range = Grid.instance.get_cells_n_units(unit.cell, unit.max_move_distance, true)
+	Grid.instance.update_astar_availability_for_unit(unit)
+	if not unit_id_valid_moves_map.has(unit.id):
+		unit_id_valid_moves_map[unit.id] = []
+	var valid_cells = unit_id_valid_moves_map[unit.id]
+	valid_cells.clear()
+	# Need to calculate A-star length for each coord
+	for cell in cells_in_range:
+		var path = Grid.instance.get_cell_path(unit.cell, cell)
+		if path.size() - 1 <= unit.max_move_distance:
+			valid_cells.append(cell)
 
 
 func _change_selected_cell(new_cell: CellData) -> void:
@@ -253,7 +278,7 @@ func _change_selected_cell(new_cell: CellData) -> void:
 	selected_cell = new_cell
 
 	if _is_player_unit_selected():
-		grid.update_astar_availability_for_player()
+		_calculate_valid_moves_for_unit(_get_selected_unit())
 
 
 func _get_cell_at_mouse() -> void:
@@ -349,6 +374,7 @@ func _add_unit_to_grid(unit: TileUnit, coord: Vector2i) -> void:
 	health_bar.max_health = unit.health.max_health
 	health_bar.current_health = unit.health.current_health
 
+	unit.cell_changed.connect(_on_unit_cell_changed.bind(unit))
 	unit.health.current_health_changed.connect(_on_tile_occupant_health_changed.bind(unit))
 	unit.health.died.connect(_on_tile_occupant_died.bind(unit))
 
@@ -363,11 +389,6 @@ func _on_grid_setup_finished() -> void:
 	_create_enemy_units()
 
 
-func _on_grid_runner_move_finished(unit: TileUnit) -> void:
-	_calculate_unit_move_path(unit)
-	grid.update_astar_availability_for_player()
-
-
 func _on_tile_occupant_health_changed(prev_health: int, new_health: int, occupant: TileOccupant) -> void:
 	Log.debug("%s health changed %s->%s" % [occupant, prev_health, new_health])
 	if occupant_id_health_bar_map.has(occupant.id):
@@ -377,3 +398,7 @@ func _on_tile_occupant_health_changed(prev_health: int, new_health: int, occupan
 
 func _on_tile_occupant_died(occupant: TileOccupant) -> void:
 	Log.info("%s died" % occupant)
+
+
+func _on_unit_cell_changed(_prev: CellData, _new: CellData, unit: TileUnit) -> void:
+	_calculate_valid_moves_for_unit(unit)

@@ -75,6 +75,13 @@ func update_astar_availability() -> void:
 	)
 
 
+func update_astar_availability_for_unit(unit: TileUnit) -> void:
+	if unit.is_player():
+		update_astar_availability_for_player()
+	elif unit.is_enemy():
+		update_astar_availability_for_enemy()
+
+
 func update_astar_availability_for_player() -> void:
 	ArrayUtils.for_2d_array(cells, func(cell: CellData):
 		astar.set_point_disabled(cell.id, not _is_cell_available_for_player_units(cell))
@@ -121,6 +128,23 @@ func set_cell_occupant(cell: CellData, occupant: TileOccupant) -> void:
 		# Hack for now until GridRunner is removed/refactored
 		if occupant is TileUnit:
 			occupant.body.global_position = cell.position
+
+
+func get_cells_n_units(start_cell: CellData, n: int, unoccupied_only: bool = false) -> Array[CellData]:
+	var out: Array[CellData] = []
+
+	for cell in cells_1d:
+		if cell == start_cell:
+			continue
+
+		if unoccupied_only and cell.occupant != null:
+			continue
+
+		var dist = GridUtils.manhattan_distance(start_cell.coord, cell.coord)
+		if dist <= n:
+			out.append(cell)
+
+	return out
 
 
 func get_direction_to_cell(start_cell: CellData, end_cell: CellData) -> Vector2i:

@@ -33,6 +33,10 @@ static func vec2i_to_cardinal(direction: Vector2i) -> ECardinalDirection:
 	return VEC2I_CARDINAL_MAP[clamped_dir]
 
 
+static func manhattan_distance(a: Vector2i, b: Vector2i) -> int:
+	return abs(a.x - b.x) + abs(a.y - b.y)
+
+
 static func print_cell_path(cell_path: Array[CellData]) -> void:
 	var path_str = ""
 	for i in range(cell_path.size()):
@@ -53,7 +57,8 @@ static func draw_cell_path(cell_path: Array[CellData]) -> void:
 	DebugDraw3D.draw_line_path(point_path)
 
 
-static func draw_cells(cells: Array[CellData], color: Color = Color.GREEN) -> void:
+# cell: Array[CellData]
+static func draw_cells(cells: Array, color: Color = Color.GREEN) -> void:
 	for cell in cells:
 		var grid_square: GridSquare = cell.grid_square
 		var box_size = Vector3.ONE * grid_square.cell_size
