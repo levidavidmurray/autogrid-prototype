@@ -21,7 +21,7 @@ func play_sfx(volume_db: float = 0.0) -> void:
 
 
 func get_sfx() -> AudioStream:
-	var resource_path = "res://assets/sfx/SFX_Ability_%s.wav" % name
+	var resource_path = "res://assets/sfx/SFX_Ability_%s.wav" % (name.replace(" ", ""))
 	if not sfx_resource_map.has(name):
 		if not ResourceLoader.exists(resource_path):
 			Log.warn("No SFX for Ability(%s) found: %s" % [name, resource_path])

@@ -38,21 +38,21 @@ var health_bar_ui: HealthBarUI
 
 var occupant_id_health_bar_map: Dictionary[String, HealthBarUI]
 var unit_id_valid_moves_map: Dictionary[String, Array] # Dictionary[String, Array[CellData]]
+var enemy_intent_map: Dictionary[TileUnit, AbilityIntent]
 
 
 func _ready() -> void:
+	set_process(false) # only process once grid setup is finished
 	grid.setup_finished.connect(_on_grid_setup_finished)
 
 
 func _process(delta: float) -> void:
-	if not grid.is_grid_ready():
-		return
-
 	_get_mouse_world_position()
 	_get_cell_at_mouse()
 
 	_process_selected_cell_state()
 	_process_player_unit_state()
+	_process_enemy_intents()
 	_process_cell_hover()
 
 	last_hovered_cell = hovered_cell
@@ -72,17 +72,30 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventKey:
 		if event.keycode == KEY_ESCAPE and event.is_released():
 			_change_selected_cell(null)
+
 		if event.keycode == KEY_1 and event.is_released():
-			var player_unit = player_units[0]
-			preview_ability = player_unit.abilities[0]
+			if _is_player_unit_selected():
+				var abilities = _get_selected_unit().abilities
+				if abilities.size() > 0:
+					preview_ability = _get_selected_unit().abilities[0]
+		if event.keycode == KEY_2 and event.is_released():
+			if _is_player_unit_selected():
+				var abilities = _get_selected_unit().abilities
+				if abilities.size() > 1:
+					preview_ability = _get_selected_unit().abilities[1]
+
 		if event.keycode == KEY_ALT:
 			show_all_ui_data = event.is_pressed()
+
 		if event.keycode == KEY_P and event.is_released():
 			var enemy_unit = enemy_units[0]
 			if not enemy_unit.can_move:
 				return
-			var player_unit = player_units[0]
-			_enemy_chase_player(enemy_unit, player_unit)
+			if _enemy_has_intent(enemy_unit):
+				_execute_enemy_intent(enemy_unit)
+			else:
+				var player_unit = player_units[0]
+				_enemy_chase_player(enemy_unit, player_unit)
 
 
 func _change_selected_cell(new_cell: CellData) -> void:
@@ -146,6 +159,49 @@ func _enemy_chase_player(enemy_unit: TileUnit, player_unit: TileUnit) -> void:
 	grid.update_astar_availability_for_enemy()
 	var cell_path = grid.get_cell_path(enemy_unit.cell, target_cell)
 	await NavigatePathAction.create(enemy_unit, cell_path)
+	_create_enemy_intent(enemy_unit, player_unit.cell)
+
+
+func _create_enemy_intent(enemy_unit: TileUnit, target_cell: CellData) -> void:
+	if not enemy_intent_map.has(enemy_unit):
+		enemy_intent_map[enemy_unit] = null
+	var ability = enemy_unit.abilities[0]
+	var target_direction = Grid.instance.get_direction_to_cell(enemy_unit.cell, target_cell)
+	enemy_intent_map[enemy_unit] = AbilityIntent.new(ability, target_direction)
+
+
+func _clear_enemy_intent(enemy_unit: TileUnit) -> void:
+	var intent = enemy_intent_map[enemy_unit]
+	if intent == null:
+		return
+	var target_cell = Grid.instance.get_relative_cell(enemy_unit.cell, intent.target_direction)
+	target_cell.grid_square.is_targeted = false
+	enemy_intent_map[enemy_unit] = null
+
+
+func _enemy_has_intent(enemy_unit: TileUnit) -> bool:
+	return enemy_intent_map.has(enemy_unit) and enemy_intent_map[enemy_unit] != null
+
+
+func _execute_enemy_intent(enemy_unit: TileUnit) -> void:
+	assert(enemy_intent_map.has(enemy_unit))
+	assert(enemy_intent_map[enemy_unit] != null)
+	var intent = enemy_intent_map[enemy_unit]	
+	var target_cell = Grid.instance.get_relative_cell(enemy_unit.cell, intent.target_direction)
+	var can_execute = AbilityHelper.can_target_cell(intent.ability, enemy_unit.cell, target_cell)
+	if can_execute:
+		var actual_cell = AbilityHelper.get_target_cell_for_ability(intent.ability, enemy_unit.cell, target_cell)
+		await intent.ability.execute(enemy_unit, actual_cell)
+	_clear_enemy_intent(enemy_unit)
+
+
+func _process_enemy_intents() -> void:
+	for enemy_unit in enemy_intent_map:
+		var intent = enemy_intent_map[enemy_unit]
+		if intent == null:
+			continue
+		var target_cell = Grid.instance.get_relative_cell(enemy_unit.cell, intent.target_direction)
+		target_cell.grid_square.is_targeted = true
 
 
 func _process_cell_hover() -> void:
@@ -292,8 +348,6 @@ func _calculate_unit_move_path(unit: TileUnit, cell: CellData) -> void:
 	if cell_path.size() - 1 > unit.max_move_distance:
 		return
 	move_preview_cell_path = cell_path
-	
-
 
 
 func _calculate_valid_moves_for_unit(unit: TileUnit) -> void:
@@ -355,8 +409,8 @@ func _create_player_units() -> void:
 	var player_unit: TileUnit = _create_player_unit()
 	player_unit.can_move = true
 	_add_unit_to_grid(player_unit, Vector2i(4, 0))
-	var strike_ability = StrikeAbility.new()
-	player_unit.abilities.append(strike_ability)
+	player_unit.abilities.append(StrikeAbility.new())
+	player_unit.abilities.append(GuidingStrikeAbility.new())
 	player_units.append(player_unit)
 
 
@@ -364,6 +418,7 @@ func _create_enemy_units() -> void:
 	var enemy_unit: TileUnit = _create_enemy_unit()
 	enemy_unit.can_move = true
 	enemy_unit.health.set_max_health(4)
+	enemy_unit.abilities.append(StrikeAbility.new())
 	_add_unit_to_grid(enemy_unit, Vector2i(4, 4))
 	enemy_units.append(enemy_unit)
 
@@ -392,6 +447,7 @@ func _add_unit_to_grid(unit: TileUnit, coord: Vector2i) -> void:
 func _on_grid_setup_finished() -> void:
 	_create_player_units()
 	_create_enemy_units()
+	set_process(true)
 
 
 func _on_tile_occupant_health_changed(prev_health: int, new_health: int, occupant: TileOccupant) -> void:

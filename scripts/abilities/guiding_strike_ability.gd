@@ -20,6 +20,7 @@ func execute(owner: TileUnit, target_cell: CellData):
 	await SprintBounceAction.create(owner, target_cell)
 
 	if target_cell.occupant:
+		play_sfx()
 		await DamageAction.create(target_cell.occupant, damage)
 
 		var target_body = target_cell.occupant.body
