@@ -87,10 +87,10 @@ func _handle_player_unit_hovered_cell_click() -> void:
 
 	if player_unit_state == PlayerUnitState.MOVE_PREVIEW:
 		if not move_preview_cell_path.is_empty():
-			# player_unit.unit.move(move_preview_cell_path)
-			# _handle_unit_move(player_unit, move_preview_cell_path)
-			NavigatePathAction.create(player_unit, move_preview_cell_path)
-			_change_selected_cell(move_preview_cell_path[-1])
+			var final_cell = move_preview_cell_path[-1]
+			await NavigatePathAction.create(player_unit, move_preview_cell_path)
+			_change_selected_cell(final_cell)
+			_calculate_unit_move_path(player_unit)
 		else:
 			if target_cell == selected_cell:
 				_change_selected_cell(null)

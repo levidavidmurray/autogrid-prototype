@@ -17,4 +17,12 @@ func execute(owner: TileUnit, target_cell: CellData):
 
 	if target_cell.occupant:
 		await DamageAction.create(target_cell.occupant, damage)
+
+		var target_body = target_cell.occupant.body
+		var scale_tween = target_body.create_tween()
+		scale_tween.tween_property(target_body, "scale:y", 0.9, 0.05)
+		scale_tween.tween_property(target_body, "scale:y", 1.0, 0.1)
+
 		await PushAction.create(owner.cell, target_cell.occupant)
+
+

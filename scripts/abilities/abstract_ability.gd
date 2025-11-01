@@ -9,7 +9,7 @@ var cast_type: ECastType = ECastType.ADJACENT
 
 func execute(owner: TileUnit, target_cell: CellData):
 	var label_pos = target_cell.position
-	label_pos.y += 0.25
+	label_pos.y += 0.75
 	G.floating_label(name, label_pos)
 	pass
 
