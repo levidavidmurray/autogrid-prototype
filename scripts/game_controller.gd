@@ -127,6 +127,7 @@ func _handle_player_unit_hovered_cell_click() -> void:
 		# Check if clicked cell is in possible cells for previewed ability
 		var can_execute = AbilityHelper.can_target_cell(preview_ability, player_unit.cell, target_cell)
 		if can_execute:
+			target_cell = AbilityHelper.get_target_cell_for_ability(preview_ability, player_unit.cell, target_cell)
 			preview_ability.execute(player_unit, target_cell)
 		preview_ability = null
 		_change_selected_cell(null)
@@ -385,6 +386,7 @@ func _add_unit_to_grid(unit: TileUnit, coord: Vector2i) -> void:
 	# grid_runner.current_cell = spawn_cell
 	grid.add_child(unit.body)
 	grid.set_cell_occupant(spawn_cell, unit)
+	unit.body.global_position = spawn_cell.position
 
 
 func _on_grid_setup_finished() -> void:

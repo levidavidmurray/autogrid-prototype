@@ -124,10 +124,6 @@ func set_cell_occupant(cell: CellData, occupant: TileOccupant) -> void:
 			occupant.cell.occupant = null
 
 		occupant.cell = cell
-		# TODO: Remove
-		# Hack for now until GridRunner is removed/refactored
-		if occupant is TileUnit:
-			occupant.body.global_position = cell.position
 
 
 func get_cells_n_units(start_cell: CellData, n: int, unoccupied_only: bool = false) -> Array[CellData]:

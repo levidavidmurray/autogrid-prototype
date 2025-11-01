@@ -28,7 +28,7 @@ static func cardinal_to_vec2i(direction: ECardinalDirection) -> Vector2i:
 
 
 static func vec2i_to_cardinal(direction: Vector2i) -> ECardinalDirection:
-	var clamped_dir := direction.clampi(0, 1)
+	var clamped_dir := direction.clampi(-1, 1)
 	assert(VEC2I_CARDINAL_MAP.has(clamped_dir), "[GridUtils::vec2i_to_cardinal] direction (%s) must be normalized to cardinal direction" % direction)
 	return VEC2I_CARDINAL_MAP[clamped_dir]
 

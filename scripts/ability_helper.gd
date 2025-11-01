@@ -15,6 +15,25 @@ static func can_target_cell(ability: AbstractAbility, owner_cell: CellData, targ
 	return target_cell in possible_cells
 
 
+static func get_target_cell_for_ability(ability: AbstractAbility, owner_cell: CellData, target_cell: CellData) -> CellData:
+	# TODO: This function should be generic enough for all ability cast types
+	var target_dir = Grid.instance.get_direction_to_cell(owner_cell, target_cell)
+	var target_cardinal_dir = GridUtils.vec2i_to_cardinal(target_dir)
+
+	var final_cell: CellData = target_cell
+	var final_cell_dist = target_dir.length()
+
+	for cell in get_possible_target_cells(ability, owner_cell):
+		var cell_dir = Grid.instance.get_direction_to_cell(owner_cell, cell)
+		var cardinal_dir = GridUtils.vec2i_to_cardinal(cell_dir)
+		var dist = cell_dir.length()
+		if cardinal_dir == target_cardinal_dir and dist > final_cell_dist:
+			final_cell = cell
+			final_cell_dist = dist
+	
+	return final_cell
+
+
 static func _get_adjacent_target_cells(cell: CellData) -> Array[CellData]:
 	return cell.get_neighbor_cells()
 
